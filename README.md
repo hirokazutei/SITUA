@@ -32,6 +32,7 @@ To keep it simple, only 3 parameters were introduced.
 ##### C. Pixel Color Number
   The number of colors the program attempts to cluster the available colors of the picture into. The larger the number, the wider range of colors will be used, while 2 will be a binary image of two colors.
 
+## Currently working on automatic posting.
 
 ## Contribution
 
