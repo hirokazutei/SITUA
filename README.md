@@ -47,6 +47,4 @@ I figured it would be just as fun to have a TwitterBot online that would pixeliz
 If you find any bugs, or have any suggestion for the program, shoot me a message.
 
 ## Special Thanks
-Coding Rainbow Dude
-Unsplash
-
+Daniel Shiffman at http://shiffman.net/
