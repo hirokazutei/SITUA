@@ -24,6 +24,8 @@ setInterval(doSearch, 1000 * 60 * 60 * 8);//Perform this function every 8 hours
 var phrase = require('./phrases.js');
 var phrase2 = require('./phrases2.js');
 var errormessages = require('./errormessages.js');
+//I did not upload the phrases files because I'd want those tweets to be a surprise.
+//They are just my lame jokes and what I imagine a cutesy robot should say anyways.
 
 // Ok a tweet has happend
 function tweetEvent(tweet) {
