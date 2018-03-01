@@ -41,7 +41,7 @@ function tweetEvent(tweet) {
       if (media) {
         var img = media[0].media_url;
         downloadFile(img, 'inimg');
-        console.log(tweet.text)
+        //console.log(tweet.text)
         fs.writeFile("intext.txt", text);
       }
     } else {
@@ -54,7 +54,7 @@ function tweetEvent(tweet) {
     // Deal with downloading
     function downloadFile(url, filename) {
 
-      console.log('Attemping to download url: ' + url + ' to ' + filename);
+      //console.log('Attemping to download url: ' + url + ' to ' + filename);
       // Make the request
       request.head(url, downloaded);
 
@@ -86,7 +86,7 @@ function tweetEvent(tweet) {
           function processing(error, stdout, stderr) {
 
             // I could do some error checking here
-            console.log(stdout);
+            //console.log(stdout);
 
             // Read the file made by Processing
             var b64content = fs.readFileSync('PicPixBot/outimg.png', {
@@ -140,10 +140,10 @@ function doSearch() {
 function intervalTweet(err, data, response) {
   var result = data.statuses;
   for (var i = 0; i < result.length; i++) {
-    console.log(result[i].entities)
-    console.log("looking for image...");
+    //console.log(result[i].entities)
+    //console.log("looking for image...");
     if (typeof result[i].entities.media !== 'undefined' && result[i].entities.media[0].type == 'photo') {
-      console.log("COOOL")
+      //console.log("Image Found")
       automaticTweet(result[i])
       break;
     }
@@ -151,7 +151,7 @@ function intervalTweet(err, data, response) {
 }
 
 function automaticTweet(data) {
-  console.log("tweeting")
+  //console.log("tweeting")
     // What's the deal with this tweet?
   var media = data.entities.media;
   var id = data.id_str;
@@ -161,7 +161,7 @@ function automaticTweet(data) {
   // Deal with downloading
   function downloadFile2(url, filename) {
 
-    console.log('Attemping to download url: ' + url + ' to ' + filename);
+    //console.log('Attemping to download url: ' + url + ' to ' + filename);
     // Make the request
     request.head(url, downloaded2);
 
@@ -193,7 +193,7 @@ function automaticTweet(data) {
         function processing2(error, stdout, stderr) {
 
           // I could do some error checking here
-          console.log(stdout);
+          //console.log(stdout);
 
           // Read the file made by Processing
           var b64content = fs.readFileSync('PicPixBot/outimg.png', {
@@ -240,8 +240,8 @@ function getRandomInt(min, max) {
 function tweeted(err, success) {
   if (err !== undefined) {
     fs.writeFile("Error.txt", err);
-    console.log(err);
+    //console.log(err);
   } else {
-    console.log('Tweeted: ' + success.text);
+    //console.log('Tweeted: ' + success.text);
   }
 }
