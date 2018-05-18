@@ -1,0 +1,27 @@
+{% extends 'tracker/base.html' %}
+
+{% block title %} Buildings {% endblock %}
+
+{% block body %}
+
+<h1>{{ building.name }}</h1>
+<h3>{{ building.association }}</h3>
+
+{% if error_message %}
+    <p><strong>{{ error_message }}</strong></p>
+{% endif %}
+
+    {% csrf_token %}
+    {% for event in event.event_set.all %}
+        <input type="radio" id="event{{ forloop.counter }}" name="event" value="{{ event.id }}">
+        <label for="event{{ forloop.counter }}">
+            {{ event.pk }}   {{ event.event_time }}
+            {% if event.error %}
+                {{ event.error }}
+            {% else %}
+                {{ event.error }}
+            {% endif %}
+        </label><br>
+    {% endfor %}
+    <input type="submit" value=" Is Error ">
+{% endblock %}
