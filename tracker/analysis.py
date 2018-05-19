@@ -35,6 +35,7 @@ def savitzky_golay(y, window_size, order, deriv=0, rate=1):
     y = np.concatenate((firstvals, y, lastvals))
     return np.convolve(m[::-1], y, mode='valid')
 
+
 def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
     try:
         top_rtb = pd.read_table(top_acc)

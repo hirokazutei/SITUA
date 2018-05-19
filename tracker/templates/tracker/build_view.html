@@ -4,24 +4,56 @@
 
 {% block body %}
 
-<h1>{{ building.name }}</h1>
-<h3>{{ building.association }}</h3>
+<h1>Building</h1>
+<h2>{{ building.name }}</h2> : <h3>{{ building.association }}</h3>
 
 {% if error_message %}
     <p><strong>{{ error_message }}</strong></p>
+    <p>Error</p>
 {% endif %}
-
     {% csrf_token %}
-    {% for event in event.event_set.all %}
-        <input type="radio" id="event{{ forloop.counter }}" name="event" value="{{ event.id }}">
+    <!--<div class="table-responsive">-->
+    <table class="table table-hover">
+        <tr>
+            <th>Event Number</th>
+            <th>Validity</th>
+            <th>Event Time</th>
+            <th>Intensity</th>
+            <th>Change Error Status</th>
+            <th>Analyze</th>
+        </tr>
+    {% for event in building.event_set.all %}
         <label for="event{{ forloop.counter }}">
-            {{ event.pk }}   {{ event.event_time }}
-            {% if event.error %}
-                {{ event.error }}
-            {% else %}
-                {{ event.error }}
-            {% endif %}
+            <tr class="Events">
+                <td>{{ event.pk }}</td>
+                {% if event.error %}
+                <td>ERROR</td>
+                {% else %}
+                <td>VALID</td>
+                {% endif %}
+                <td>{{ event.event_time }}</td>
+                <td>{{ event.intensity }}</td>
+                <td><a href="{% url 'tracker:change_error' buildingpk=building.pk eventpk=event.pk %}"><button type="button"
+                    class="btn btn-default">
+                    Change Error</button></a></td>
+            </tr>
         </label><br>
     {% endfor %}
-    <input type="submit" value=" Is Error ">
+</table>
 {% endblock %}
+
+<form action="{% url 'tracker:set_error' building.pk %}" method="post">
+        <!--this tag is a convenient way to avoid cross site scripting-->
+            {% csrf_token %}
+            {% if error %}
+                <h2>There was an error: {{error}}</h2>
+            {% else %}
+                {% for event in building.event_set.all %}
+                <!--name dictates the variable in the POST data-->
+                <!--avoided using forloop.counter since I want to display each event's key value-->
+                    <input type="radio" name="Event" id="event{{ event.pk }}" value="{{ event.pk }}" />
+                    <label for="event{{ event.pk }}">Event {{ event.pk }}</label><br />
+                {% endfor %}
+            {% endif %}
+        <input type="submit" value="error" />
+        </form>

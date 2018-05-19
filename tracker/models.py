@@ -29,7 +29,7 @@ BUILDING_TYPE = (
 class Building(models.Model):
     # General Information
     name = models.CharField(max_length=64)
-    affiliation = models.CharField(max_length=64)
+    affiliation = models.CharField(max_length=64, blank=True)
     floors_above = models.IntegerField(default=1)
     floors_below = models.IntegerField(default=0)
     construction_date = models.DateTimeField(auto_now_add=False, blank=True)
@@ -37,44 +37,45 @@ class Building(models.Model):
     general_info = models.CharField(max_length=512, default='None')
     # Contexual Information
     address = models.CharField(max_length=256, default='None')
-    latitude = models.FloatField(default=0)
-    longitude = models.FloatField(default=0)
+    latitude = models.FloatField(default=0, blank=True)
+    longitude = models.FloatField(default=0, blank=True)
     cannot_find_address = models.BooleanField(default=False)
     structure_type = models.CharField(
         max_length=20,
         choices=BUILDING_TYPE,
         default='Unspecified',
     )
-    height = models.FloatField(default=0)
-    width_ns = models.FloatField(default=0)
-    width_ew = models.FloatField(default=0)
-    contex_info = models.CharField(max_length=512, default='None')
+    height = models.FloatField(default=0, blank=True)
+    width_ns = models.FloatField(default=0, blank=True)
+    width_ew = models.FloatField(default=0, blank=True)
+    contex_info = models.CharField(max_length=512, default='None', blank=True)
     # Accelerometer Information
     # Perhaps make this a separate class and link the id with Building
     acc_top_floor = models.IntegerField(default=-1)
-    acc_top_detail = models.CharField(max_length=512, default='None')
+    acc_top_detail = models.CharField(max_length=512, default='None', blank=True)
     acc_bot_floor = models.IntegerField(default=-1)
-    acc_bot_detail = models.CharField(max_length=512, default='None')
-    sampling_rate = models.FloatField(default=0)  # Set Default
-    conversion_factor = models.FloatField(default=0)  # Set Default
+    acc_bot_detail = models.CharField(max_length=512, default='None', blank=True)
+    sampling_rate = models.FloatField(default=0, blank=True)  # Set Default
+    conversion_factor = models.FloatField(default=0, blank=True)  # Set Default
 
     def __str__(self):
         return '{} - {}'.format(self.name, self.affiliation)
+
 
 class Event(models.Model):
     building = models.ForeignKey(Building, on_delete=models.CASCADE)
     # General Information
     add_time = models.DateTimeField(auto_now_add=True)
-    event_time = models.DateTimeField(auto_now_add=True, blank=True)
-    duration = models.IntegerField(default=0)
-    intensity = models.FloatField(default=-1)
-    number = models.IntegerField(default=0)
+    event_time = models.DateTimeField(auto_now_add=False, blank=True)
+    duration = models.IntegerField(default=0, blank=True)
+    intensity = models.FloatField(default=-1, blank=True)
+    number = models.IntegerField(default=0, blank=True)
     acceleration_top = ArrayField(models.FloatField(), default=[])
     acceleration_bot = ArrayField(models.FloatField(), default=[])
-    fourier_top = ArrayField(models.FloatField(), default=[])
-    fourier_bot = ArrayField(models.FloatField(), default=[])
-    transfer_function = ArrayField(models.FloatField(), default=[])
-    predominant_frequency = models.FloatField(default=-1)
+    fourier_top = ArrayField(models.FloatField(), default=[], blank=True)
+    fourier_bot = ArrayField(models.FloatField(), default=[], blank=True)
+    transfer_function = ArrayField(models.FloatField(), default=[], blank=True)
+    predominant_frequency = models.FloatField(default=-1, blank=True)
     error = models.BooleanField(default=False)
 
     def __str__(self):
@@ -110,4 +111,7 @@ class Report(models.Model):
     comment = models.CharField(max_length=1024)
 
     def __str__(self):
-        return 'Report ID: {} on {}, Building of {}.'.format(self.pk, self.event_time, self.building.name)
+        return 'Report ID: {} on {}, Building of {}.'.format(self.pk,
+                                                             self.add_time,
+                                                             self.building.name)
+                                                             

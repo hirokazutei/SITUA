@@ -9,11 +9,11 @@ from . import views
 urlpatterns = [
     # regular rendering view would be views.index
     url(r'^$', views.IndexView.as_view(), name='index'),
-      # (?P<building_pk>[0-9]+) should be able to be replaced by <int:building_pk>
+    # (?P<building_pk>[0-9]+) should be able to be replaced by <int:building_pk>
     # DetailView generic view expects the primary key valure captured from the URL to be called "pk"
     url(r'^view/(?P<pk>[0-9]+)/$', views.BuildView.as_view(), name='build_view'),
     # Since this leads to a function, there is no generic view
-    url(r'^error/(?P<pk>[0-9]+)/$', views.set_error, name='set_error'),
+    url(r'^error/(?P<buildingpk>[0-9]+)/(?P<eventpk>[0-9]+)/$', views.change_error, name='change_error'),
     url(r'building/add/$', views.BuildingCreate.as_view(), name='building-add'),
     url(r'building/(?P<pk>[0-9]+)/$', views.BuildingUpdate.as_view(), name='building-update'),
     url(r'event/$', views.EventList.as_view(), name='event-list'),

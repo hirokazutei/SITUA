@@ -61,15 +61,18 @@ class EventView(generic.DetailView):
     # template_name changes that default
     template_name = 'tracker/event_view.html'
 
+
 class EventCreate(CreateView):
     model = Event
     fields = ['building', 'duration', 'acceleration_top', 'acceleration_bot']
     success_url = reverse_lazy("tracker:index")
 
+
 class ReportCreate(CreateView):
     model = Report
     fields = ['building', 'occurance', 'comment']
     success_url = reverse_lazy("tracker:index")
+
 
 def analyze(request, pk):
     building = get_object_or_404(Building, pk=pk)
@@ -83,23 +86,21 @@ def analyze(request, pk):
         })
     else:
         AnalyzeEvent(analyze_event, analyze_event.acceleration_top,
-        analyze_event.acceleration_bot)
+                     analyze_event.acceleration_bot)
         return HttpResponseRedirect(reverse('tracker:build_view',
                                             args=(building.pk,)))
-        
 
 
-def set_error(request, pk):
-    building = get_object_or_404(Building, pk=pk)
-    print(request)
+def change_error(request, buildingpk, eventpk):
+    building = Building.objects.get(pk=buildingpk)
     try:
         # The value associated with 'Event' is passed in as a POST request,
         # this case, the private key
-        error_event = building.event_set.get(pk=request.POST['Event'])
+        error_event = Event.objects.get(pk=eventpk)
     except (KeyError, Event.DoesNotExist):
         return render(request, 'tracker/build_view.html', {
             'building': building,
-            'error_message': "Oops, Something Went Wrong",
+            'error_message': "Event Does Not Exist!",
         })
     except Exception as error:
         return render(request, 'tracker/build_view.html', {
@@ -107,7 +108,10 @@ def set_error(request, pk):
             'error_message': error,
         })
     else:
-        error_event.error = True
+        if error_event.error:
+            error_event.error = False
+        else:
+            error_event.error = True
         error_event.save()
         # Use HttpResponseRedirect for successful POST request as convention
         # Reverse avoid hardcoding urls
