@@ -13,11 +13,10 @@ from matplotlib import cm
 def savitzky_golay(y, window_size, order, deriv=0, rate=1):
     import numpy as np
     from math import factorial
-    
     try:
         window_size = np.abs(np.int(window_size))
         order = np.abs(np.int(order))
-    except:
+    except Exception as error:
         raise ValueError("window_size and order have to be of type int")
     if window_size % 2 != 1 or window_size < 1:
         raise TypeError("window_size size must be a positive odd number")
@@ -37,32 +36,27 @@ def savitzky_golay(y, window_size, order, deriv=0, rate=1):
 
 
 def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
+    print("FFT")
     try:
-        top_rtb = pd.read_table(top_acc)
-        bot_rtb = pd.read_table(bot_acc)
-        top_sq = top_rtb.values.squeeze()
-        bot_sq = bot_rtb.values.squeeze()
+        top_fft = fft(top_acc)
+        bot_fft = fft(bot_acc)
     except Exception as error:
+        print("FFT ERROR")
         return error, "Error"
-        
+    print("SMOOTH")
     try:
-        top_fft = fft(top_sq)
-        bot_fft = fft(bot_sq)
+        temp_fourier_top = savitzky_golay(np.array(np.abs(top_fft)), smooth_str, smooth_deg)
+        temp_fourier_bot = savitzky_golay(np.array(np.abs(bot_fft)), smooth_str, smooth_deg)
+        temp_number = len(top_acc) if top_acc <= bot_acc else bot_acc
     except Exception as error:
-        return error, "Error"
-    
-    try:
-        temp_fourier_top = savitzky_golay(np.array(np.abs(top_fft)), strength, degree)
-        temp_fourier_bot = savitzky_golay(np.array(np.abs(bot_fft)), strength, degree)
-        temp_number = len(top_rtb) if top_rtb <= bot_rtb else bot_rtb
-    except Exception as error:
+        print("SMOOTH ERROR")
         return error, "Error"
     else:
-        event.fourier_top = temp_fourier_top
-        event.fourier_bot = temp_fourier_bot 
+        event.fourier_top = temp_fourier_top.tolist()
+        event.fourier_bot = temp_fourier_bot.tolist()
         event.number = temp_number
         event.save()
-    
+    print("TRANSFER FUNCTION")
     try:
         temp = []
         for i in range(event.number):

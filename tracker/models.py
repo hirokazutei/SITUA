@@ -30,6 +30,8 @@ class Building(models.Model):
     # General Information
     name = models.CharField(max_length=64)
     affiliation = models.CharField(max_length=64, blank=True)
+    #image = models.ImageField(blank=True, null=True,
+    #                          upload_to="buildings")
     floors_above = models.IntegerField(default=1)
     floors_below = models.IntegerField(default=0)
     construction_date = models.DateTimeField(auto_now_add=False, blank=True)
@@ -114,4 +116,3 @@ class Report(models.Model):
         return 'Report ID: {} on {}, Building of {}.'.format(self.pk,
                                                              self.add_time,
                                                              self.building.name)
-                                                             

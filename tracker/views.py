@@ -22,12 +22,14 @@ class IndexView(generic.ListView):
     def get_queryset(self):
         return Building.objects.all()
 
+
 class EventList(generic.ListView):
     template_name = 'tracker/event-list.html'
     context_object = 'event_list'
 
     def get_queryset(self):
         return Event.objects.all()
+
 
 #Changed from DetailView
 class BuildView(generic.DetailView):
@@ -36,6 +38,7 @@ class BuildView(generic.DetailView):
     # <app name>/<model name>_detail.html
     # template_name changes that default
     template_name = 'tracker/build_view.html'
+
 
 class BuildingCreate(CreateView):
     model = Building
@@ -74,25 +77,28 @@ class ReportCreate(CreateView):
     success_url = reverse_lazy("tracker:index")
 
 
-def analyze(request, pk):
-    building = get_object_or_404(Building, pk=pk)
-    print(request)
+def process_data(request, buildingpk, eventpk):
+    building = get_object_or_404(Building, pk=buildingpk)
     try:
-        analyze_event = building.event_set.get(pk=request.POST['Event'])
+        analyze_event = get_object_or_404(Event, pk=eventpk)
     except Exception as error:
         return render(request, 'tracker/build_view.html', {
             'building': building,
             'error_message': error,
         })
     else:
-        AnalyzeEvent(analyze_event, analyze_event.acceleration_top,
-                     analyze_event.acceleration_bot)
-        return HttpResponseRedirect(reverse('tracker:build_view',
-                                            args=(building.pk,)))
+        AnalyzeEvent(analyze_event, analyze_event.acceleration_top, analyze_event.acceleration_bot)
+        message = "Event {} has been processed!".format(eventpk)
+        return render(request, 'tracker/build_view.html', {
+            'building': building,
+            'message': message,
+        })
+        #return HttpResponseRedirect(reverse('tracker:build_view',
+        #                                    args=(building.pk,)))
 
 
 def change_error(request, buildingpk, eventpk):
-    building = Building.objects.get(pk=buildingpk)
+    building = get_object_or_404(Building, pk=buildingpk)
     try:
         # The value associated with 'Event' is passed in as a POST request,
         # this case, the private key
