@@ -1,0 +1,10 @@
+ * Building View Should Display Detailed information
+	- Picture
+	- All info
+	- Predominant Period
+	- Status (Danger?
+	- A button to update data
+ * A view specifically to view the building's data
+	* A view to look at the event in detail
+ * A view to look at the reports
+	* A view to look at the 

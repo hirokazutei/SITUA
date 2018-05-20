@@ -42,18 +42,19 @@ class BuildView(generic.DetailView):
 
 class BuildingCreate(CreateView):
     model = Building
-    fields = ['name', 'affiliation', 'floors_above', 'floors_below',
-    'construction_date', 'general_info', 'address', 'structure_type',
-    'height', 'width_ns', 'width_ew', 'contex_info', 'acc_top_floor',
-    'acc_bot_floor', 'acc_top_detail', 'acc_bot_detail']
+    fields = ['name', 'affiliation', 'image', 'floors_above', 'floors_below',
+              'construction_date', 'general_info', 'address', 'structure_type',
+              'height', 'width_ns', 'width_ew', 'contex_info', 'acc_top_floor',
+              'acc_bot_floor', 'acc_top_detail', 'acc_bot_detail']
     success_url = reverse_lazy("tracker:index")
+
 
 class BuildingUpdate(UpdateView):
     model = Building
-    fields = ['name', 'affiliation', 'floors_above', 'floors_below',
-    'construction_date', 'general_info', 'address', 'structure_type',
-    'height', 'width_ns', 'width_ew', 'contex_info', 'acc_top_floor',
-    'acc_bot_floor', 'acc_top_detail', 'acc_bot_detail']
+    fields = ['name', 'affiliation', 'image' 'floors_above', 'floors_below',
+              'construction_date', 'general_info', 'address', 'structure_type',
+              'height', 'width_ns', 'width_ew', 'contex_info', 'acc_top_floor',
+              'acc_bot_floor', 'acc_top_detail', 'acc_bot_detail']
     success_url = reverse_lazy("tracker:index")
     #might not need success here
 
@@ -67,7 +68,17 @@ class EventView(generic.DetailView):
 
 class EventCreate(CreateView):
     model = Event
-    fields = ['building', 'duration', 'acceleration_top', 'acceleration_bot']
+    fields = ['building', 'duration', 'event_time',
+              'acceleration_top', 'acceleration_bot',
+              'acceleration_bot_file', 'acceleration_top_file']
+    success_url = reverse_lazy("tracker:index")
+
+
+class EventUpdate(UpdateView):
+    model = Event
+    fields = ['building', 'duration', 'event_time',
+              'acceleration_top', 'acceleration_bot',
+              'acceleration_bot_file', 'acceleration_top_file']
     success_url = reverse_lazy("tracker:index")
 
 
@@ -87,8 +98,9 @@ def process_data(request, buildingpk, eventpk):
             'error_message': error,
         })
     else:
-        AnalyzeEvent(analyze_event, analyze_event.acceleration_top, analyze_event.acceleration_bot)
-        message = "Event {} has been processed!".format(eventpk)
+        message, status = AnalyzeEvent(analyze_event, analyze_event.acceleration_top, analyze_event.acceleration_bot)
+        if status != "Error":
+            message = "Event {} has been processed!".format(eventpk)
         return render(request, 'tracker/build_view.html', {
             'building': building,
             'message': message,
@@ -164,13 +176,13 @@ class UserFormView(View):
     def get(self, request):
         form = self.form_class(None) #Use the user form
         return render(request, self.template_name, {'form': form})
-        
+
     def post(self, request):
         form = self.form_class(request.POST)
-        
+
         if form.is_valid():
             user = form.save(commit=False) #does not save in database
-            
+
             # cleaned (normalized) data
             username = form.cleaned_data['username']
             password = form.cleaned_data['password']

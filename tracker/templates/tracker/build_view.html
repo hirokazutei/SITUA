@@ -4,8 +4,10 @@
 
 {% block body %}
 
-<h1>Building</h1>
-<h2>{{ building.name }}</h2> : <h3>{{ building.association }}</h3>
+<h1>Building View</h1>
+<h2>{{ building.name }} : {{ building.association }}</h2>
+{% load staticfiles %}
+<img src={% static building.image.url %} alt="Building's Image" class="img-responsive img-rounded"\>
 
 {% if message %}
     <p><strong>{{ message }}</strong></p>
@@ -14,11 +16,13 @@
     <!--<div class="table-responsive">-->
     <table class="table table-hover">
         <tr>
-            <th>Event Number</th>
+            <th>Event No.</th>
             <th>Validity</th>
             <th>Event Time</th>
             <th>Intensity</th>
-            <th>Change Error Status</th>
+            <th>Predominant Period</th>
+            <th>Error Status</th>
+            <th>Edit Event</th>
             <th>Process Data</th>
         </tr>
     {% for event in building.event_set.all %}
@@ -26,15 +30,23 @@
             <tr class="Events">
                 <td>{{ event.pk }}</td>
                 {% if event.error %}
-                <td>ERROR</td>
+                    <td><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></td>
                 {% else %}
-                <td>VALID</td>
+                    <td><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></td>
                 {% endif %}
                 <td>{{ event.event_time }}</td>
                 <td>{{ event.intensity }}</td>
+                {% if event.predominant_period > 0 %}
+                    <td>{{ event.predominant_period }}</td>
+                {% else %}
+                    <td>NOT PROCESSED</td>
+                {% endif %}
                 <td><a href="{% url 'tracker:change_error' buildingpk=building.pk eventpk=event.pk %}"><button type="button"
                     class="btn btn-default">
                     Change</button></a></td>
+                <td><a href="{% url 'tracker:event_edit' buildingpk=building.pk pk=event.pk %}"><button type="button"
+                    class="btn btn-default">
+                    Process</button></a></td>
                 <td><a href="{% url 'tracker:process_data' buildingpk=building.pk eventpk=event.pk %}"><button type="button"
                     class="btn btn-default">
                     Process</button></a></td>

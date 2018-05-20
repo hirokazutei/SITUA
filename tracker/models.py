@@ -30,8 +30,8 @@ class Building(models.Model):
     # General Information
     name = models.CharField(max_length=64)
     affiliation = models.CharField(max_length=64, blank=True)
-    #image = models.ImageField(blank=True, null=True,
-    #                          upload_to="buildings")
+    image = models.ImageField(blank=True, null=True,
+                              upload_to="buildings/image")
     floors_above = models.IntegerField(default=1)
     floors_below = models.IntegerField(default=0)
     construction_date = models.DateTimeField(auto_now_add=False, blank=True)
@@ -59,6 +59,15 @@ class Building(models.Model):
     acc_bot_detail = models.CharField(max_length=512, default='None', blank=True)
     sampling_rate = models.FloatField(default=0, blank=True)  # Set Default
     conversion_factor = models.FloatField(default=0, blank=True)  # Set Default
+    # Post Process Data
+    predominant_periods = ArrayField(models.FloatField(), null=True,
+                                     default=[], blank=True)
+    graph_predominant_period = models.ImageField(blank=True, null=True,
+                                                 upload_to='buildings/predominant')
+    predominant_periods_smooth = ArrayField(models.FloatField(), null=True,
+                                            default=[], blank=True)
+    graph_predominant_period_smooth = models.ImageField(blank=True, null=True,
+                                                        upload_to='buildings/smooth/predominant')
 
     def __str__(self):
         return '{} - {}'.format(self.name, self.affiliation)
@@ -72,13 +81,38 @@ class Event(models.Model):
     duration = models.IntegerField(default=0, blank=True)
     intensity = models.FloatField(default=-1, blank=True)
     number = models.IntegerField(default=0, blank=True)
-    acceleration_top = ArrayField(models.FloatField(), default=[])
-    acceleration_bot = ArrayField(models.FloatField(), default=[])
+
+    # Analitical Information
+    acceleration_top = ArrayField(models.FloatField(), default=[], blank=True)
+    acceleration_bot = ArrayField(models.FloatField(), default=[], blank=True)
     fourier_top = ArrayField(models.FloatField(), default=[], blank=True)
     fourier_bot = ArrayField(models.FloatField(), default=[], blank=True)
     transfer_function = ArrayField(models.FloatField(), default=[], blank=True)
-    predominant_frequency = models.FloatField(default=-1, blank=True)
-    error = models.BooleanField(default=False)
+    predominant_period = models.FloatField(default=0, blank=True, null=True)
+    error = models.BooleanField(default=False, blank=True)
+    processed = models.BooleanField(default=False, blank=True)
+
+    # Images and Documnets
+    acceleration_top_graph = models.ImageField(blank=True, null=True,
+                                               upload_to='event/acceleration/top/graph')
+    acceleration_bot_graph = models.ImageField(blank=True, null=True,
+                                               upload_to='event/acceleration/bot/graph')
+    fourier_top_graph = models.ImageField(blank=True, null=True,
+                                          upload_to='event/fourier/top/graph')
+    fourier_bot_graph = models.ImageField(blank=True, null=True,
+                                          upload_to='event/fourier/bot/graph')
+    fourier_top_graph_smooth = models.ImageField(blank=True, null=True,
+                                                 upload_to='event/fourier/top/smooth/graph')
+    fourier_bot_graph_smooth = models.ImageField(blank=True, null=True,
+                                                 upload_to='event/fourier/bot/smooth/graph')                                       
+    transfer_function_graph = models.ImageField(blank=True, null=True,
+                                                upload_to='event/transfer/graph')
+    transfer_function_graph_smooth = models.ImageField(blank=True, null=True,
+                                                       upload_to='event/transfer/smooth/graph') 
+    acceleration_top_file = models.FileField(blank=True, null=True,
+                                             upload_to="event/acceleration/top/data")
+    acceleration_bot_file = models.FileField(blank=True, null=True,
+                                             upload_to="event/acceleration/bot/data")
 
     def __str__(self):
         return 'Event ID: {} on {}, Intensity of {}.'.format(self.pk,
@@ -110,6 +144,14 @@ class Report(models.Model):
         choices=OCCURANCE,
         default='Other',
     )
+    image1 = models.ImageField(blank=True, null=True,
+                               upload_to='report')
+    image2 = models.ImageField(blank=True, null=True,
+                               upload_to='report')
+    image3 = models.ImageField(blank=True, null=True,
+                               upload_to='report')
+    image4 = models.ImageField(blank=True, null=True,
+                               upload_to='report')
     comment = models.CharField(max_length=1024)
 
     def __str__(self):

@@ -4,10 +4,15 @@ import pywt
 import csv
 from scipy import signal
 from matplotlib import pyplot as plt
-from scipy.fftpack import fft,ifft
+from matplotlib import pylab
+from pylab import *
+import PIL, PIL.Image, io
+from scipy.fftpack import fft, ifft
 from sklearn.neighbors import KernelDensity
 from scipy.stats import gaussian_kde
 from matplotlib import cm
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+from matplotlib.figure import Figure
 
 
 def savitzky_golay(y, window_size, order, deriv=0, rate=1):
@@ -36,6 +41,39 @@ def savitzky_golay(y, window_size, order, deriv=0, rate=1):
 
 
 def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
+    # Read Data
+    print("READ DATA")
+    try:
+        if len(top_acc) < 1000 or len(bot_acc) < 1000:
+            if event.acceleration_top_file is not None and event.acceleration_bot_file is not None:
+                try:
+                    top_parse = pd.read_table(evnet.acceleration_top_file)
+                    bot_parse = pd.read_table(event.acceleration_bot_file)
+                    top_acc = top_parse.values.squeeze()
+                    bot_acc = bot_parse.values.squeeze()
+                except Exception as error:
+                    return error, "Error"
+                else:
+                    event.acceleration_top = top_acc.tolist()
+                    event.acceleration_bot = bot_acc.tolist()
+                    event.save()
+            else:
+                return "Your data may not have been parsed or is complete.", "Error"
+        else:
+            pass
+    except Exception as error:
+        print("DATA ERROR")
+        return error, "Error"
+    
+    # Find Max
+    try:
+        event.intensity = max(top_acc)
+    except Exception as error:
+        return error, "Error"
+    else:
+        event.save()
+
+    # Fourier Transform
     print("FFT")
     try:
         top_fft = fft(top_acc)
@@ -58,28 +96,54 @@ def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
         event.save()
     print("TRANSFER FUNCTION")
     try:
-        temp = []
+        transfer_function = []
         for i in range(event.number):
-            temp.append(np.abs(top_fft[i]) / np.abs(bot_fft[i]))
+            transfer_function.append(np.abs(top_fft[i]) / np.abs(bot_fft[i]))
     except Exception as error:
+        print("erroered")
         return error, "Error"
     else:
-        event.transfer_function = temp
+        event.transfer_function = transfer_function
         event.save()
+    
+    # Process Graph
+    print("GRAPH")
+    try:
+        ### ADD GRAPH FUNCTION
+        print("Missing Graph Function")
+    except Exception as error:
+        print("ERROR")
+        return "Could not process graph", "Error"
+
+    # Process Predominant Period
+    ### REVIEW THIS CODE
+    print("PREDOMINANT FREQUENCY")
+    try:
+        transfer_peak = max(event.transfer_function[1000:4000])
+        for n in range(len(event.fourier_top)):
+            if (event.transfer_function[n] == transfer_peak):
+                predominant_period = n/100
+                break
+    except Exception as error:
+        print("ERROR")
+        return error, "Error"
+    event.predominant_period = predominant_period
+    event.save()
+    return "", "Complete"
 
 """
 class Analysis:
-    
+
     def __init__(self, data):
         self.data = data
         self.events = []
         self.peaks = []
-    
+
     def processGraph(self, x1, x2, y1, y2, fmin, fmax, name, nesw, weird = None):
         T = 1.0 / 100.0
         plt.ylabel('Amplitude')
         plt.xlabel('Frequency')
-        
+
         for e in range(len(self.data)):
             event = self.Event(self.data[e])
             if weird is True:
@@ -90,7 +154,7 @@ class Analysis:
             event.divFFT()
             self.events.append(event)
             print(event.N)
-            
+
             if nesw == 0:
                 xf = np.linspace(0.0, (event.N//2)/100, len(event.xfft0[:event.N//2]))
                 plt.grid()
@@ -107,7 +171,7 @@ class Analysis:
                 plt.grid()
                 plt.plot(xf, event.xfft1[:event.N//2], linewidth=0.5)
                 plt.axis([x1, x2, y1, y2])
-        
+
                 m = (max(event.xfft1[fmin:fmax]))
                 for n in range(len(event.xfft1[0:fmax])):
                     if (event.xfft1[n] == m):
@@ -118,19 +182,19 @@ class Analysis:
                 plt.grid()
                 plt.plot(xf, event.xfft2[:event.N//2], linewidth=0.5)
                 plt.axis([x1, x2, y1, y2])
-        
+
                 m = (max(event.xfft2[fmin:fmax]))
                 for n in range(len(event.xfft2[0:fmax])):
                     if (event.xfft2[n] == m):
                         self.peaks.append([n/100, self.data[e]])
                         break
-                        
+
         print(self.peaks)
         plt.title(name)
         plt.ylabel('Amplitude') # DONT FORGET TO MAKE IT PRING NS and WE DIRECTIONS
         plt.xlabel('Frequency')
         plt.show()
-    
+
     def shortTimeFastFourier(self, x1, x2, y1, y2, nesw, tvmin = 5, tvmax = 15, windowtype = 'parzen'):
         fs = 1
         a = 0
@@ -150,7 +214,7 @@ class Analysis:
                 plt.ylabel('Frequency')
                 plt.xlabel('Time')
                 plt.show()
-        
+
         elif nesw is 1:
             for i in self.events:
                 topffsf, topffst, topffs = signal.stft(i.topdata1.real, fs, window=windowtype, nperseg=1000, noverlap=None, return_onesided=True, boundary=None, padded=True, axis=-1)
@@ -172,7 +236,7 @@ class Analysis:
         array = []
         plt.ylabel('PreDominant Frequency')
         plt.xlabel('Data')
-        
+
         for e in range(len(self.peaks)):
             array.append(self.peaks[e][0])
             print(self.peaks[e])
@@ -181,54 +245,7 @@ class Analysis:
         plt.axis([x1, x2, y1, y2])
         plt.title('Peaks')
         plt.show()
-    
-    def plotVibration(self, x1, x2, y1, y2, bottop = 'all', nesw = 9):
-        for event in self.events:
-            xf = np.linspace(0.0, (event.N//2)/100, len(event.botdata0))#[:event.N//2]))
-            plt.grid()
-            if bottop == 'bot':
-                if nesw == 0 or nesw == 9:
-                    plt.plot(xf, event.botdata0, linewidth=0.2)
-                if nesw == 1 or nesw == 9:
-                    plt.plot(xf, event.botdata1, linewidth=0.2)
-            elif bottop == 'top':
-                if nesw == 0 or nesw == 9:
-                    plt.plot(xf, event.topdata0, linewidth=0.2)
-                if nesw == 1 or nesw == 9:
-                    plt.plot(xf, event.topdata1, linewidth=0.2)
-            elif bottop == 'all':
-                if nesw == 0 or nesw == 9:
-                    plt.plot(xf, event.topdata0, linewidth=0.2)
-                    plt.plot(xf, event.botdata0, linewidth=0.2)
-                if nesw == 1 or nesw == 9:
-                    plt.plot(xf, event.topdata1, linewidth=0.2)
-                    plt.plot(xf, event.botdata1, linewidth=0.2)
-        plt.axis([x1, x2, y1, y2])
-        plt.title('Vibration')
-        plt.show()
-    
-  
-def countN(range1, range2, weird = False):
-    Ns = []
-    for e in range(range1, range2):
-        if weird:
-            botfloorfilename0 = "EventNo." + str(e) + "/data/acc/acc_ch0_gl.csv"
-        else:
-            botfloorfilename0 = "EventNo." + str(e) + "/data/acc/acc_-1_0_gal.txt"
-        try:
-            botinfile0 = open(botfloorfilename0, 'r')
-        except Exception:
-            continue
-        botaccdata0 = pd.read_table(botinfile0)
-        botdata0 = botaccdata0.values.squeeze()
-        N = len(botdata0)
-        #print(N)
-        appended = False
-        for i in range(len(Ns)):
-            if Ns[i][0] == N:
-                Ns[i].append(e)
-                appended = True
-        if not appended:
-            Ns.append([N, e])
-    return Ns
+
+
+
 """
