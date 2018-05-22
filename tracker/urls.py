@@ -29,6 +29,7 @@ urlpatterns = [
     url(r'event/edit/(?P<buildingpk>[0-9]+)/(?P<pk>[0-9]+)/$', views.EventUpdate.as_view(), name='event_edit'),
     url(r'^error/(?P<buildingpk>[0-9]+)/(?P<eventpk>[0-9]+)/$', views.change_error, name='change_error'),
  
+    url(r'^report/(?P<pk>[0-9]+)/$', views.ReportView.as_view(), name='report-view'),
     url(r'report/add/$', views.ReportCreate.as_view(), name='report-add'),
 ]
 

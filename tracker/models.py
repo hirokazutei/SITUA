@@ -89,7 +89,7 @@ class Event(models.Model):
     fourier_bot = ArrayField(models.FloatField(), default=[], blank=True)
     transfer_function = ArrayField(models.FloatField(), default=[], blank=True)
     predominant_period = models.FloatField(default=0, blank=True, null=True)
-    error = models.BooleanField(default=False, blank=True)
+    error = models.BooleanField(default=True, blank=True)
     processed = models.BooleanField(default=False, blank=True)
 
     # Images and Documnets
@@ -118,6 +118,9 @@ class Event(models.Model):
         return 'Event ID: {} on {}, Intensity of {}.'.format(self.pk,
                                                              self.event_time,
                                                              self.intensity)
+    
+    class Meta:
+        ordering = ['event_time']
 
 
 # Report Section

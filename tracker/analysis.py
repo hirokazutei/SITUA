@@ -44,14 +44,17 @@ def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
     # Read Data
     print("READ DATA")
     try:
-        if len(top_acc) < 1000 or len(bot_acc) < 1000:
+        print(event.acceleration_top_file.url)
+        if len(top_acc) < 1000 or len(bot_acc) < 1000 or bot_acc == None:
             if event.acceleration_top_file is not None and event.acceleration_bot_file is not None:
                 try:
-                    top_parse = pd.read_table(evnet.acceleration_top_file)
+                    top_parse = pd.read_table(event.acceleration_top_file)
                     bot_parse = pd.read_table(event.acceleration_bot_file)
                     top_acc = top_parse.values.squeeze()
                     bot_acc = bot_parse.values.squeeze()
                 except Exception as error:
+                    print("Hey")
+                    print(error)
                     return error, "Error"
                 else:
                     event.acceleration_top = top_acc.tolist()
@@ -67,7 +70,7 @@ def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
     
     # Find Max
     try:
-        event.intensity = max(top_acc)
+        event.intensity = round(max(top_acc), 3)
     except Exception as error:
         return error, "Error"
     else:
@@ -85,9 +88,10 @@ def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
     try:
         temp_fourier_top = savitzky_golay(np.array(np.abs(top_fft)), smooth_str, smooth_deg)
         temp_fourier_bot = savitzky_golay(np.array(np.abs(bot_fft)), smooth_str, smooth_deg)
-        temp_number = len(top_acc) if top_acc <= bot_acc else bot_acc
+        temp_number = len(top_acc) #if top_acc <= bot_acc else bot_acc
     except Exception as error:
         print("SMOOTH ERROR")
+        print(error)
         return error, "Error"
     else:
         event.fourier_top = temp_fourier_top.tolist()
@@ -119,15 +123,20 @@ def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
     ### REVIEW THIS CODE
     print("PREDOMINANT FREQUENCY")
     try:
-        transfer_peak = max(event.transfer_function[1000:4000])
+        n = int((2*event.number)/32766)
+        print(n)
+        print(event.number)
+        transfer_peak = max(event.transfer_function[50*n:1000*n])
         for n in range(len(event.fourier_top)):
             if (event.transfer_function[n] == transfer_peak):
-                predominant_period = n/100
+                predominant_period = round(1/(n/event.number)/100, 3)
                 break
     except Exception as error:
         print("ERROR")
         return error, "Error"
     event.predominant_period = predominant_period
+    event.error = False
+    event.processed = True
     event.save()
     return "", "Complete"
 

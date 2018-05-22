@@ -34,11 +34,6 @@
                             <span class="glyphicon glyphicon-home" aria-hidden="true"></span>&nbsp; Buildings
                         </a>
                     </li>
-                    <li class="">
-                        <a href="{% url 'tracker:event-list' %}">
-                            <span class="glyphicon glyphicon-transfer" aria-hidden="true"></span>&nbsp; Instances
-                        </a>
-                    </li>
                 </ul>
     
                 <form class="navbar-form navbar-left" role="search" method="get" action="#">
@@ -52,17 +47,17 @@
                 <ul class="nav navbar-nav navbar-right">
                     <li class="">
                         <a href="{% url 'tracker:building-add' %}">
-                            <span class="glyphicon glyphicon-user" aria-hidden="true"></span>&nbsp; New Building
+                            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>&nbsp; New Building
                         </a>
                     </li>
                     <li class="">
                         <a href="{% url 'tracker:event-add' %}">
-                            <span class="glyphicon glyphicon-cloud-upload" aria-hidden="true"></span>&nbsp; New Event
+                            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>&nbsp; New Event
                         </a>
                     </li>
                     <li class="">
                         <a href="{% url 'tracker:report-add' %}">
-                            <span class="glyphicon glyphicon-log-out" aria-hidden="true"></span>&nbsp; Log-Out
+                            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>&nbsp; New Report
                         </a>
                     </li>
                 </ul>

@@ -58,6 +58,7 @@ class BuildingUpdate(UpdateView):
     success_url = reverse_lazy("tracker:index")
     #might not need success here
 
+
 class EventView(generic.DetailView):
     model = Event
     # By default, it will choose template called
@@ -80,6 +81,11 @@ class EventUpdate(UpdateView):
               'acceleration_top', 'acceleration_bot',
               'acceleration_bot_file', 'acceleration_top_file']
     success_url = reverse_lazy("tracker:index")
+
+
+class ReportView(generic.DetailView):
+    model = Report
+    template_name = 'tracker/report-view.html'
 
 
 class ReportCreate(CreateView):
