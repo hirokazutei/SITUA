@@ -13,6 +13,7 @@ from scipy.stats import gaussian_kde
 from matplotlib import cm
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
+from .models import Building, Event, Report
 
 
 def savitzky_golay(y, window_size, order, deriv=0, rate=1):
@@ -44,8 +45,7 @@ def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
     # Read Data
     print("READ DATA")
     try:
-        print(event.acceleration_top_file.url)
-        if len(top_acc) < 1000 or len(bot_acc) < 1000 or bot_acc == None:
+        if len(top_acc) < 1000 or len(bot_acc) < 1000 or bot_acc is None:
             if event.acceleration_top_file is not None and event.acceleration_bot_file is not None:
                 try:
                     top_parse = pd.read_table(event.acceleration_top_file)
@@ -53,8 +53,6 @@ def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
                     top_acc = top_parse.values.squeeze()
                     bot_acc = bot_parse.values.squeeze()
                 except Exception as error:
-                    print("Hey")
-                    print(error)
                     return error, "Error"
                 else:
                     event.acceleration_top = top_acc.tolist()
@@ -70,7 +68,7 @@ def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
     
     # Find Max
     try:
-        event.intensity = round(max(top_acc), 3)
+        event.intensity = round(max(top_bot), 3)
     except Exception as error:
         return error, "Error"
     else:
@@ -83,28 +81,33 @@ def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
         bot_fft = fft(bot_acc)
     except Exception as error:
         print("FFT ERROR")
+        event.error = True
+        even.save()
         return error, "Error"
     print("SMOOTH")
     try:
         temp_fourier_top = savitzky_golay(np.array(np.abs(top_fft)), smooth_str, smooth_deg)
         temp_fourier_bot = savitzky_golay(np.array(np.abs(bot_fft)), smooth_str, smooth_deg)
-        temp_number = len(top_acc) #if top_acc <= bot_acc else bot_acc
+        temp_number = len(top_acc)
     except Exception as error:
         print("SMOOTH ERROR")
-        print(error)
+        event.error = True
+        event.save()
         return error, "Error"
     else:
         event.fourier_top = temp_fourier_top.tolist()
         event.fourier_bot = temp_fourier_bot.tolist()
         event.number = temp_number
         event.save()
+
     print("TRANSFER FUNCTION")
     try:
         transfer_function = []
         for i in range(event.number):
             transfer_function.append(np.abs(top_fft[i]) / np.abs(bot_fft[i]))
     except Exception as error:
-        print("erroered")
+        event.error = True
+        event.save()
         return error, "Error"
     else:
         event.transfer_function = transfer_function
@@ -132,6 +135,8 @@ def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
                 predominant_period = round(1/(n/event.number)/100, 3)
                 break
     except Exception as error:
+        event.error = True
+        even.save()
         print("ERROR")
         return error, "Error"
     event.predominant_period = predominant_period
@@ -140,121 +145,93 @@ def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
     event.save()
     return "", "Complete"
 
-"""
-class Analysis:
 
-    def __init__(self, data):
-        self.data = data
-        self.events = []
-        self.peaks = []
-
-    def processGraph(self, x1, x2, y1, y2, fmin, fmax, name, nesw, weird = None):
-        T = 1.0 / 100.0
-        plt.ylabel('Amplitude')
-        plt.xlabel('Frequency')
-
-        for e in range(len(self.data)):
-            event = self.Event(self.data[e])
-            if weird is True:
-                event.readEvent(True)
-            else:
-                event.readEvent()
-            event.smoothen(151, 2)
-            event.divFFT()
-            self.events.append(event)
-            print(event.N)
-
-            if nesw == 0:
-                xf = np.linspace(0.0, (event.N//2)/100, len(event.xfft0[:event.N//2]))
-                plt.grid()
-                plt.plot(xf, event.xfft0[:event.N//2], linewidth=0.5)
-                plt.axis([x1, x2, y1, y2])
-
-                m = (max(event.xfft0[fmin:fmax]))
-                for n in range(len(event.xfft0[0:fmax])):
-                    if (event.xfft0[n] == m):
-                        self.peaks.append([n/100, self.data[e]])
-                        break
-            elif nesw == 1:
-                xf = np.linspace(0.0, (event.N//2)/100, len(event.xfft1[:event.N//2]))
-                plt.grid()
-                plt.plot(xf, event.xfft1[:event.N//2], linewidth=0.5)
-                plt.axis([x1, x2, y1, y2])
-
-                m = (max(event.xfft1[fmin:fmax]))
-                for n in range(len(event.xfft1[0:fmax])):
-                    if (event.xfft1[n] == m):
-                        self.peaks.append([n/100, self.data[e]])
-                        break
-            elif nesw == 2:
-                xf = np.linspace(0.0, (event.N//2)/100, len(event.xfft2[:event.N//2]))
-                plt.grid()
-                plt.plot(xf, event.xfft2[:event.N//2], linewidth=0.5)
-                plt.axis([x1, x2, y1, y2])
-
-                m = (max(event.xfft2[fmin:fmax]))
-                for n in range(len(event.xfft2[0:fmax])):
-                    if (event.xfft2[n] == m):
-                        self.peaks.append([n/100, self.data[e]])
-                        break
-
-        print(self.peaks)
-        plt.title(name)
-        plt.ylabel('Amplitude') # DONT FORGET TO MAKE IT PRING NS and WE DIRECTIONS
-        plt.xlabel('Frequency')
-        plt.show()
-
-    def shortTimeFastFourier(self, x1, x2, y1, y2, nesw, tvmin = 5, tvmax = 15, windowtype = 'parzen'):
-        fs = 1
-        a = 0
-        if nesw is 0:
-            for i in self.events:
-                topffsf, topffst, topffs = signal.stft(np.abs(i.topdata0.real), fs, window=windowtype, nperseg=1000, noverlap=None, return_onesided=True, boundary=None, padded=True, axis=-1)
-                botffsf, botffst, botffs = signal.stft(np.abs(i.botdata0.real), fs, window=windowtype, nperseg=1000, noverlap=None, return_onesided=True, boundary=None, padded=True, axis=-1)
-
-                ffsx = []
-                for n in range(len(topffs)):
-                    ffsx.append(np.abs(topffs[n].real) / np.abs(botffs[n].real))
-
-                plt.pcolormesh(topffst/200, topffsf*100, np.abs(ffsx), vmin=tvmin, vmax=tvmax)
-                plt.axis([x1, x2, y1, y2]) 
-                plt.title('STFT Magnitude: ' + str(self.data[a]))
-                a += 1
-                plt.ylabel('Frequency')
-                plt.xlabel('Time')
-                plt.show()
-
-        elif nesw is 1:
-            for i in self.events:
-                topffsf, topffst, topffs = signal.stft(i.topdata1.real, fs, window=windowtype, nperseg=1000, noverlap=None, return_onesided=True, boundary=None, padded=True, axis=-1)
-                botffsf, botffst, botffs = signal.stft(i.botdata1.real, fs, window=windowtype, nperseg=1000, noverlap=None, return_onesided=True, boundary=None, padded=True, axis=-1)
-
-                ffsx = []
-                for n in range(len(topffs)):
-                    ffsx.append(topffs[n] / botffs[n])
-
-                plt.pcolormesh(topffst/200, topffsf*100, np.abs(ffsx), vmin=tvmin, vmax=tvmax)
-                plt.axis([x1, x2, y1, y2])
-                plt.title('STFT Magnitude: ' + str(self.data[a]))
-                a += 1
-                plt.ylabel('Frequency')
-                plt.xlabel('Time')
-                plt.show()
-
-    def plotPeaks(self, x1, x2, y1, y2):
-        array = []
-        plt.ylabel('PreDominant Frequency')
-        plt.xlabel('Data')
-
-        for e in range(len(self.peaks)):
-            array.append(self.peaks[e][0])
-            print(self.peaks[e])
-        plt.grid()
-        plt.plot(array, linewidth=1)
-        plt.axis([x1, x2, y1, y2])
-        plt.title('Peaks')
-        plt.show()
+# Buidldings
+def AppendPeriod(building):
+    try:
+        events = Event.objects.all().filter(building=building).order_by('add_time')
+        predominant_periods = []
+        for event in events:
+            if event.error is False and event.processed is True:
+                if event.might_be_error is False or event.confirmed_not_error is True:
+                    predominant_periods.append(event.predominant_period)
+        building.predominant_periods = predominant_periods
+        building.save()
+        return "Periods Appended", "Complete"
+    except Exception as err:
+        return err, "Error"
 
 
+def SmoothenPredominantPeriod(building):
+    try:
+        print(len(building.predominant_periods))
+        period_len = len(building.predominant_periods)
+        if period_len < 10:
+            err = "There is not enough predominant period to significantly smoothen."
+            return err, "Error"
+        smoothen_bucket = building.predominant_periods[:4]
+        smoothened = []
+        for i in range(5, period_len, 1):
+            smoothen_bucket.append(building.predominant_periods[i])
+            smoothen_bucket.pop(0)
+            smoothened.append(sum(smoothen_bucket)/len(smoothen_bucket))
+    except Exception as err:
+        return err, "Error"
+    try:
+        building.predominant_periods_smooth = smoothened
+        building.save()
+    except Exception as err:
+        return err, "Error"
+    print(building.predominant_periods_smooth)
+    return "", "Complete"
 
-"""
+
+def AveragePeriod(building):
+    try:
+        if len(building.predominant_periods) < 10:
+            err = "There is not enough predominant period to significantly smoothen."
+            return err, "Error"
+        else:
+            try:
+                average = sum(building.predominant_periods_smooth)/len(building.predominant_periods_smooth)
+                building.predominant_period_avg = average
+                building.save()
+            except Exception as err:
+                return err, "Error"
+    except Exception as err:
+        return err, "Error"
+    return "", "Complete"
+
+
+def WarningSigns(building):
+    try:
+        if building.predominant_period_avg <= 0:
+            err = "There is not enough data to determine building status."
+            return err, "Error"
+        else:
+            try:
+                percent_change = building.predominant_period_avg/building.predominant_periods_smooth[-1]
+                if percent_change > 1.3:
+                    building.warning_message = "Significant Lowering of Predominant Period!"
+                    building.building_status = "Caution"
+                elif percent_change > 1.6:
+                    building.building_status = "Dangerous"
+                    building.warning_message = "Extremely Significant Lowering of Predominant Period!"
+                elif percent_change < 0.8:
+                    building.building_status = "Abnormal"
+                    building.warning_message = "Sifnificant Increase of Predominant Period!"
+                elif percent_change < 0.6:
+                    building.building_status = "Abnormal"
+                    building.warning_message = "Extremely Significant Incrase of Predominant Period!"
+                else:
+                    building.building_status = "Good"
+                    building.warning_message = "Everything seems fine"
+                building.save()
+                return "Warning Scanned", "Complete"
+            except Exception as err:
+                return err, "Error"
+    except Exception as err:
+        return err, "Error"
+
+# Upload Event, Process Event, Append Period, Smoothen, Average_period, warning signs
+# Function to compare event predominant frequency and ask if error

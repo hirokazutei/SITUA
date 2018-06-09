@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils import timezone
+import datetime
 
 W = 'Wood'
 C = 'Concrete'
@@ -13,6 +14,12 @@ S = 'Steel'
 BI = 'Base Isolated'
 Other = 'Other'
 NA = 'Unspecified'
+
+Good = 'Good'
+Caut = 'Caution'
+Dang = 'Danger'
+Abno = 'Abnormal'
+Noin = 'Not Enough Info'
 
 BUILDING_TYPE = (
     (W, 'Wood'),
@@ -26,12 +33,20 @@ BUILDING_TYPE = (
     (NA, 'Unspecified')
 )
 
+BUILDING_STATUS = (
+    (Good, 'Good'),
+    (Caut, 'Caution'),
+    (Dang, 'Dangerous'),
+    (Abno, 'Abnormal'),
+    (Noin, 'Not Enough Info')
+)
+
+
 class Building(models.Model):
     # General Information
     name = models.CharField(max_length=64)
     affiliation = models.CharField(max_length=64, blank=True)
-    image = models.ImageField(blank=True, null=True,
-                              upload_to="buildings/image")
+    image = models.ImageField(blank=True, null=True, upload_to="buildings/image")
     floors_above = models.IntegerField(default=1)
     floors_below = models.IntegerField(default=0)
     construction_date = models.DateTimeField(auto_now_add=False, blank=True)
@@ -43,7 +58,7 @@ class Building(models.Model):
     longitude = models.FloatField(default=0, blank=True)
     cannot_find_address = models.BooleanField(default=False)
     structure_type = models.CharField(
-        max_length=20,
+        max_length=50,
         choices=BUILDING_TYPE,
         default='Unspecified',
     )
@@ -62,12 +77,26 @@ class Building(models.Model):
     # Post Process Data
     predominant_periods = ArrayField(models.FloatField(), null=True,
                                      default=[], blank=True)
+    predominant_period_avg = models.FloatField(default=-1, blank=True),
     graph_predominant_period = models.ImageField(blank=True, null=True,
                                                  upload_to='buildings/predominant')
     predominant_periods_smooth = ArrayField(models.FloatField(), null=True,
                                             default=[], blank=True)
     graph_predominant_period_smooth = models.ImageField(blank=True, null=True,
                                                         upload_to='buildings/smooth/predominant')
+    warning_spots = ArrayField(models.FloatField(), null=True, default=[], blank=True)
+    # Status
+    warning_message = models.CharField(max_length=512, 
+                                       default='Not Enough Data',
+                                       blank=True)
+    building_status = models.CharField(
+        max_length=50,
+        choices=BUILDING_STATUS,
+        default=Noin
+    )
+    modified_event = models.IntegerField(default=0, blank=True)
+    last_renovation_date = models.DateTimeField(default=datetime.datetime(1950, 1, 16),
+                                                blank=True)
 
     def __str__(self):
         return '{} - {}'.format(self.name, self.affiliation)
@@ -77,7 +106,7 @@ class Event(models.Model):
     building = models.ForeignKey(Building, on_delete=models.CASCADE)
     # General Information
     add_time = models.DateTimeField(auto_now_add=True)
-    event_time = models.DateTimeField(auto_now_add=False, blank=True)
+    event_time = models.DateTimeField(auto_now_add=False)
     duration = models.IntegerField(default=0, blank=True)
     intensity = models.FloatField(default=-1, blank=True)
     number = models.IntegerField(default=0, blank=True)
@@ -90,6 +119,8 @@ class Event(models.Model):
     transfer_function = ArrayField(models.FloatField(), default=[], blank=True)
     predominant_period = models.FloatField(default=0, blank=True, null=True)
     error = models.BooleanField(default=True, blank=True)
+    might_be_error = models.BooleanField(default=False, blank=True)
+    confirmed_not_error = models.BooleanField(default=False, blank=True)
     processed = models.BooleanField(default=False, blank=True)
 
     # Images and Documnets
@@ -139,8 +170,8 @@ OCCURANCE = (
 class Report(models.Model):
     building = models.ForeignKey(Building, on_delete=models.CASCADE)
     # General Information
-    begin_modification = models.DateTimeField(auto_now_add=True, blank=True)
-    end_modification = models.DateTimeField(auto_now_add=True, blank=True)
+    begin_modification = models.DateTimeField(null=True)
+    end_modification = models.DateTimeField(null=True)
     add_time = models.DateTimeField(auto_now_add=True)
     occurance = models.CharField(
         max_length=20,

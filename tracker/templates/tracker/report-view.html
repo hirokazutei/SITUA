@@ -1,69 +1,51 @@
 {% extends 'tracker/base.html' %}
 
-{% block title %} Buildings {% endblock %}
-
 {% block body %}
+<div class="container">
+<h1>Report Detail</h1>
+<h4>Report No.{{ report.id }}</h4>
+<h1>{{ report.building.name }} : {{ report.building.affiliation }} </h1>
+{% if report.begin_modification == report.end_modification %}
+<h4>{{ report.occurance }} on {{report.begin_modification }}</h4>
+{% else %}
+<h4>{{ report.occurance }} From {{report.begin_modification }} to {{ report.end_modification }}</h4>
+{% endif %}
 
-<h1>Building View</h1>
-<h2>{{ building.name }} : {{ building.association }}</h2>
-
-<h1>List of Reports</h1>
-
-<h2> {{ building.pk }} : {{ building.name }} </h2>
-<h3> {{ building.affiliation }} </h3>
-
-{% csrf_token %}
-    <!--<div class="table-responsive">-->
-    <table class="table table-hover">
-        <tr>
-            <th>Type</th>
-            <th>Begin Date</th>
-            <th>End Date</th>
-            <th>Comment</th>
-        </tr>
-    {% for report in building.report_set.all %}
-        <label for="report{{ forloop.counter }}">
-            <tr class="report">
-                <td>{{ report.occurance}} </td>
-                <td>{{ report.begin_modification }}</td>
-                <td>{{ report.end_modificaiton }}</td>
-                <td>{{ report.comment }}</td>
-            </tr>
-            <tr class="images">
-                <td>
-                {% if report.image1 %}
-                {% load staticfiles %}
-                    <td><img src={% static report.image.url %} alt="Report's Image" class="img-responsive img-rounded"\></td>
-                {% else %}
-                    <td><span class="glyphicon glyphicon-cloud-upload" aria-hidden="true"></span></td>
-                {% endif %}
-                </td>
-                <td>
-                {% if report.image1 %}
-                {% load staticfiles %}
-                    <td><img src={% static report.image.url %} alt="Report's Image" class="img-responsive img-rounded"\></td>
-                {% else %}
-                    <td><span class="glyphicon glyphicon-cloud-upload" aria-hidden="true"></span></td>
-                {% endif %}
-                </td>
-                <td>
-                {% if report.image1 %}
-                {% load staticfiles %}
-                    <td><img src={% static report.image.url %} alt="Report's Image" class="img-responsive img-rounded"\></td>
-                {% else %}
-                    <td><span class="glyphicon glyphicon-cloud-upload" aria-hidden="true"></span></td>
-                {% endif %}
-                </td>
-                <td>
-                {% if report.image1 %}
-                {% load staticfiles %}
-                    <td><img src={% static report.image.url %} alt="Report's Image" class="img-responsive img-rounded"\></td>
-                {% else %}
-                    <td><span class="glyphicon glyphicon-cloud-upload" aria-hidden="true"></span></td>
-                {% endif %}
-                </td>
-            </tr>
-        </label><br>
-    {% endfor %}
-</table>
+<div class="panel panel-default">
+<div class="panel-heading"><h3>{{ report.occurance }}</h3> </div>
+<div class="panel-body"><h4>{{ report.comment }}</h4>
+</div>
+    <td>
+    {% if report.image1 %}
+    {% load staticfiles %}
+        <td><img src={% static report.image.url %} alt="Report's Image" class="img-responsive img-rounded"\></td>
+    {% else %}
+        <td><span class="glyphicon glyphicon-cloud-upload" aria-hidden="true"></span></td>
+    {% endif %}
+    </td>
+    <td>
+    {% if report.image2 %}
+    {% load staticfiles %}
+        <td><img src={% static report.image.url %} alt="Report's Image" class="img-responsive img-rounded"\></td>
+    {% else %}
+        <td><span class="glyphicon glyphicon-cloud-upload" aria-hidden="true"></span></td>
+    {% endif %}
+    </td>
+    <td>
+    {% if report.image3 %}
+    {% load staticfiles %}
+        <td><img src={% static report.image.url %} alt="Report's Image" class="img-responsive img-rounded"\></td>
+    {% else %}
+        <td><span class="glyphicon glyphicon-cloud-upload" aria-hidden="true"></span></td>
+    {% endif %}
+    </td>
+    <td>
+    {% if report.image4 %}
+    {% load staticfiles %}
+        <td><img src={% static report.image.url %} alt="Report's Image" class="img-responsive img-rounded"\></td>
+    {% else %}
+        <td><span class="glyphicon glyphicon-cloud-upload" aria-hidden="true"></span></td>
+    {% endif %}
+    </td>
+</div>
 {% endblock %}

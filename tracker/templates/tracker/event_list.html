@@ -1,6 +1,7 @@
 {% extends 'tracker/base.html' %}
 
 {% block body %}
+<div class="container">
     <ul>
         {% if event_list %} <!-- when you use ListView, it always return the list os object_list-->
             {% for event in event_list %}
@@ -10,4 +11,5 @@
             <h1> NO BUILDINGS YET</h1>
         {% endif %}
     </ul>
+    </div>
 {% endblock %}

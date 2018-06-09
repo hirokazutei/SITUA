@@ -1,14 +1,20 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-from django.http import HttpResponseRedirect
+from django import forms
+from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
 from django.urls import reverse, reverse_lazy
 from django.template import loader
+import json
 from django.views import generic
+import dateparser
+from cgi import parse_qs, escape
+from django.views.decorators.csrf import csrf_exempt
+import requests
 from django.views.generic import View
-from django.views.generic.edit import CreateView, UpdateView, DeleteView #Create form
+from django.views.generic.edit import CreateView, UpdateView, DeleteView # Create form
 from django.shortcuts import render, get_object_or_404, get_list_or_404, redirect
 
-from .analysis import AnalyzeEvent
+from .analysis import AnalyzeEvent, SmoothenPredominantPeriod, AppendPeriod, AveragePeriod, WarningSigns
 
 from .models import Building, Event, Report
 
@@ -34,29 +40,33 @@ class EventList(generic.ListView):
 #Changed from DetailView
 class BuildView(generic.DetailView):
     model = Building
-    # By default, it will choose template called
-    # <app name>/<model name>_detail.html
-    # template_name changes that default
     template_name = 'tracker/build_view.html'
 
 
+class BuildingForm(forms.ModelForm):
+    class Meta:
+        model = Building
+        fields = ['name', 'affiliation', 'image', 'floors_above', 'floors_below',
+                  'construction_date', 'general_info', 'address', 'structure_type',
+                  'height', 'width_ns', 'width_ew', 'contex_info', 'acc_top_floor',
+                  'acc_bot_floor', 'acc_top_detail', 'acc_bot_detail']
+        widgets = {
+            'construction_date': forms.SelectDateWidget(),
+            'general_info': forms.Textarea,
+            'contex_info': forms.Textarea
+        }
+
+
 class BuildingCreate(CreateView):
+    form_class = BuildingForm
     model = Building
-    fields = ['name', 'affiliation', 'image', 'floors_above', 'floors_below',
-              'construction_date', 'general_info', 'address', 'structure_type',
-              'height', 'width_ns', 'width_ew', 'contex_info', 'acc_top_floor',
-              'acc_bot_floor', 'acc_top_detail', 'acc_bot_detail']
     success_url = reverse_lazy("tracker:index")
 
 
 class BuildingUpdate(UpdateView):
+    form_class = BuildingForm
     model = Building
-    fields = ['name', 'affiliation', 'image' 'floors_above', 'floors_below',
-              'construction_date', 'general_info', 'address', 'structure_type',
-              'height', 'width_ns', 'width_ew', 'contex_info', 'acc_top_floor',
-              'acc_bot_floor', 'acc_top_detail', 'acc_bot_detail']
     success_url = reverse_lazy("tracker:index")
-    #might not need success here
 
 
 class EventView(generic.DetailView):
@@ -67,20 +77,34 @@ class EventView(generic.DetailView):
     template_name = 'tracker/event_view.html'
 
 
+class EventForm(forms.ModelForm):
+    class Meta:
+        model = Event
+        fields = ['building', 'duration', 'event_time',
+                  'acceleration_top', 'acceleration_bot',
+                  'acceleration_bot_file', 'acceleration_top_file']
+        widgets = {
+            'event_time': forms.SelectDateWidget(),
+            'acceleration_top': forms.Textarea,
+            'acceleration_bot': forms.Textarea
+        }
+
+
 class EventCreate(CreateView):
+    form_class = EventForm
     model = Event
-    fields = ['building', 'duration', 'event_time',
-              'acceleration_top', 'acceleration_bot',
-              'acceleration_bot_file', 'acceleration_top_file']
     success_url = reverse_lazy("tracker:index")
 
 
 class EventUpdate(UpdateView):
+    form_class = EventForm
     model = Event
-    fields = ['building', 'duration', 'event_time',
-              'acceleration_top', 'acceleration_bot',
-              'acceleration_bot_file', 'acceleration_top_file']
     success_url = reverse_lazy("tracker:index")
+
+
+class ReportList(generic.DetailView):
+    model = Building
+    template_name = 'tracker/report-list.html'
 
 
 class ReportView(generic.DetailView):
@@ -88,13 +112,30 @@ class ReportView(generic.DetailView):
     template_name = 'tracker/report-view.html'
 
 
+class ReportForm(forms.ModelForm):
+    class Meta:
+        model = Report
+        fields = ['building', 'begin_modification', 'end_modification', 'occurance', 'comment', 'image1', 'image2', 'image3', 'image4']
+        widgets = {
+            'end_modification': forms.SelectDateWidget(),
+            'begin_modification': forms.SelectDateWidget(),
+            'comment': forms.Textarea
+        }
+
+
 class ReportCreate(CreateView):
+    form_class = ReportForm
     model = Report
-    fields = ['building', 'occurance', 'comment']
     success_url = reverse_lazy("tracker:index")
 
 
-def process_data(request, buildingpk, eventpk):
+class ReportUpdate(UpdateView):
+    form_class = ReportForm
+    model = Report
+    success_url = reverse_lazy("tracker:index")
+
+
+def process_event(request, buildingpk, eventpk):
     building = get_object_or_404(Building, pk=buildingpk)
     try:
         analyze_event = get_object_or_404(Event, pk=eventpk)
@@ -104,15 +145,22 @@ def process_data(request, buildingpk, eventpk):
             'error_message': error,
         })
     else:
-        message, status = AnalyzeEvent(analyze_event, analyze_event.acceleration_top, analyze_event.acceleration_bot)
+        message, status = AnalyzeEvent(analyze_event, analyze_event.acceleration_top, 
+                                       analyze_event.acceleration_bot)
         if status != "Error":
             message = "Event {} has been processed!".format(eventpk)
         return render(request, 'tracker/build_view.html', {
             'building': building,
             'message': message,
         })
-        #return HttpResponseRedirect(reverse('tracker:build_view',
+        # return HttpResponseRedirect(reverse('tracker:build_view',
         #                                    args=(building.pk,)))
+
+
+def process_building(request, buildingpk):
+    building = get_object_or_404(Building, pk=buildingpk)
+    print(SmoothenPredominantPeriod(building))
+    return HttpResponseRedirect(reverse('tracker:index'))
 
 
 def change_error(request, buildingpk, eventpk):
@@ -143,6 +191,98 @@ def change_error(request, buildingpk, eventpk):
                                             args=(building.pk,)))
 
 
+def confirmed_not_error(request, buildingpk, eventpk):
+    event = get_object_or_404(Event, pk=eventpk)
+    event.confirmed_not_error = True
+    event.save()
+    return HttpResponseRedirect(reverse('tracker:build_view', args=(buildingpk)))
+
+
+def buidling_modified(request, buildingpk):
+    building = get_object_or_404(Building, pk=buildingpk)
+    try:
+        events = Event.objects.all().filter(building=building)
+        last_event = max(events.id)
+        event = Event.objects.all().filter(id=last_event)
+        event.confirmed_not_error = True
+        building.modified_event = last_event
+        building.predominant_periods = []
+        building.predominant_period_avg = []
+        building.predominant_periods_smooth = []
+        building.warning_message = 'Building Predominant Period Permanantly Changed; Currently Not Enough Data'
+        building.building_status = 'Not Enough Info'
+        building.save()
+    except Exception as err:
+        return err, "Error"
+    return HttpResponseRedirect(reverse('tracker:report-add'))
+
+
+@csrf_exempt
+def APIupload(request):
+    if request.method == "POST":
+        e = json.loads(request.body)
+        acc_top = e['acceleration_top']
+        acc_bot = e['acceleration_bot']
+        try:
+            building = get_object_or_404(Building, pk=e['building'])
+            if '\n' in acc_top:
+                acc_top = acc_top.split('\n')
+                acc_bot = acc_bot.split('\n')
+            e = Event(building=building,
+                      event_time=dateparser.parse(e['event_time']),
+                      acceleration_top=e['acceleration_top'],
+                      acceleration_bot=e['acceleration_bot'])
+            e.save()
+            try:
+                msg, status = AnalyzeEvent(e, e.acceleration_top, e.acceleration_bot)
+                if status == "Error":
+                    return HttpResponse(msg)
+            except Exception:
+                return HttpResponse('Analyze Event Failed') 
+            try:
+                msg, status = AppendPeriod(building)
+                if status == "Error":
+                    return HttpResponse(msg)
+            except Exception:
+                return HttpResponse("AppendPeriod Failed")
+            try:
+                msg, status = SmoothenPredominantPeriod(building)
+                if status == "Error":
+                    return HttpResponse(msg)
+            except Exception as err:
+                return HttpResponse("Smoothen Predominant Period Failed")
+            # Average Period
+            try:
+                msg, status = AveragePeriod(building)
+                if status == "Error":
+                    return HttpResponse(msg)
+            except Exception:
+                return HttpResponse("Average Period Failed")
+            try:
+                msg, status = WarningSigns(building)
+                if status == "Error":
+                    return HttpResponse(msg)
+            except Exception:
+                return HttpResponse("Warning Signs Failed")
+            try:
+                    print(building.predominant_period_avg)
+                    if int(building.predominant_period_avg) > 0:
+                        percent_change = int(building.predominant_period_avg / e.predominant_period)
+                        if percent_change > 1.3:
+                            e.might_be_error = True
+                        elif percent_change > 1.6:
+                            e.might_be_error = True
+                        elif percent_change < 0.8:
+                            e.might_be_error = True
+                        elif percent_change < 0.6:
+                            e.might_be_error = True
+            except Exception as err:
+                print(err)
+                return HttpResponse('Warnings Failed')
+        except Exception as err:
+            return HttpResponseBadRequest
+    print(building.predominant_period_avg)
+    return HttpResponse('<h1>Event Added and Processed</h1>')
 
 
 """ This is the non generic view method to return rendered views

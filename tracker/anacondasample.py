@@ -265,3 +265,51 @@ def countN(range1, range2, weird = False):
         if not appended:
             Ns.append([N, e])
     return Ns
+
+counts = countN(1, 4200)
+for i in counts:
+    print (i)
+
+    counts = countN(1, 4200, True)
+for i in counts:
+    print (i)
+
+    workdataweird1 = [33, 43, 47, 48, 51]
+workdataweird3 = [9, 14, 16, 24, 25, 26, 27, 30, 31, 32, 34, 35, 36, 37, 38, 39, 40, 41, 42, 44, 45, 46, 49, 50]
+workdataweird6 = [11]
+workdata1 = [59, 64, 65, 81, 83, 87, 94, 95, 105, 142, 150, 157, 165, 166, 249, 275, 278, 287, 322, 328, 329, 336, 339, 358, 359, 360, 407, 411, 441, 455, 457, 461, 482, 559, 571, 576, 600, 748, 1644, 1653, 1705, 1730, 1762]
+workdata3 = [54, 58, 60, 61, 62, 63, 66, 84, 86, 91, 93, 102, 104, 146, 148, 154, 159, 162, 164, 167, 243, 245, 248, 252, 280, 285, 290, 320, 321, 340, 343, 357, 384, 385, 388, 390, 397, 410, 433, 434, 440, 442, 466, 492, 529, 541, 563, 573, 591, 607, 710, 1225, 1648, 1660, 1670, 1696, 1701, 1714, 1725, 1734, 1739, 1749, 1756, 1764]
+workdata6 = [82, 111, 136, 151, 260]
+analysis = Analysis(workdataweird1)
+analysis.processGraph(0, 12.5, 0, 60, 200, 4000, "Half Data: 0", 0, True)
+analysis.plotPeaks(0, 40, 0, 20)
+
+analysis = Analysis([142])
+analysis.processGraph(0, 12.5, 0, 60, 200, 600, "Half Data: 0", 0)
+ffta = "EventNo.142/data/fft/wacc_input_0_fft.txt"
+fftb = "EventNo.142/data/fft/wacc_res_0_fft.txt"
+a = open(ffta, 'r')
+b = open(fftb, 'r')
+fta = []
+lines = a.read().split('\n')
+"""
+for line in range(len(lines) -1):
+    fta.append(float(lines[line][-8:]))
+a= savitzky_golay(np.array(np.abs(fta)), 101, 2)
+    
+plt.plot(a,linewidth=0.5)
+plt.axis([0, 2400, 0, 0.01])
+
+plt.show()
+"""
+
+ftb = []
+lineb = b.read().split('\n')
+for line in range(len(lineb) -1):
+    ftb.append(float(lineb[line][-8:]))
+b = savitzky_golay(np.array(np.abs(ftb)), 101, 2)
+    
+plt.plot(b,linewidth=0.5)
+plt.axis([0, 1200, 0, 0.2])
+
+plt.show()

@@ -3,6 +3,7 @@
 {% block title %} Buildings {% endblock %}
 
 {% block body %}
+<div class="container">
 
 <h1>List of Monitored Buildings</h1>
 
@@ -33,15 +34,16 @@
                 <td><a href="{% url 'tracker:build_view' building.id %}">{{ building.name }} </a>  </td>
                 <td>{{ building.affiliation }}</td>
                 <td>{{ building.location }}</td>
-                <td> Placeholder for Status </td>
+                <td>{{ building.building_status }} </td>
                 <td><a href="{% url 'tracker:build_view' building.id %}"><button type="button"
                     class="btn btn-default">Events</button></a></td>
-                <td><a href="{% url 'tracker:report-view' building.id %}"><button type="button"
+                <td><a href="{% url 'tracker:report-list' building.id %}"><button type="button"
                     class="btn btn-default">Reports</button></a></td>
-                <td><a href="url 'tracker:process_data' buildingpk=building.pk eventpk=event.pk "><button type="button"
+                <td><a href="{% url 'tracker:process_building' building.id %}"><button type="button"
                     class="btn btn-default">Update Data</button></a></td>
             </tr>
         </label><br>
     {% endfor %}
 </table>
+</div>
 {% endblock %}
