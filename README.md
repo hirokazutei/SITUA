@@ -1,50 +1,15 @@
-# PicPixBot
+# SITUA
 
-#### A TwitterBot that turns your photos you tweet at him into cool pixel arts!
+## What is SITUA
 
+SITUA stands for Structural Integrity Tracking Using Accelerometers. In essense, it is a website that helps anyone track the predominant period of a building. The change of the predominant period of a building are often good indicators of structural change, therefore, knowing the shifts in predominant frequency can tell us about the building's current SITUAtion.
 
-## What is it?
+## What is being tracked?
 
-His Twitter is @PicPixBot hosted on Amazon EC2.
-You can tweet a picture at him, tell him the parameters and he will turn that picture into a pixel art.
-Instructions are on his pinned tweet.
+To track predominant period of the building, one would need two accelerometers, one situated at the basement, or ground level, and another at the top level of the building. When an earthquake occures, the accelerometer at the bottom measure the acceleration experienced at the ground level, and the accelerometer on top measures the acceleration experienced on the top. With data from both, the predominant period of the building can be derived.
 
-## How does it work?
-Using node.js, the program uses the stream function to be activated when someone tweet @ the bot. If the tweet comes with an image, that image is saved, processed by [Processing](https://processing.org/), and tweeted with a mention to the original user. If the specified parameters are written wrong or blank, the bot will set random parameters.
+## What is predominant period?
 
-Note that in order for the program to successfully connect to the Twitter API, you need your own keys in a file and you also need the TWIT library.
+Things tends to like to shake in a certain way. If you get a plastic ruler and shake it back and forth, you will realize that it will wriggle at a certain pattern, that is the predominant period. The stiffer something is, the shorter the period. In otherwords, if the period begomes longer, the building may have become less stiff, which could indicate that something is damaged.
 
-#### Parameters
-To keep it simple, only 3 parameters were introduced.
-##### A. Pixel Type
-  0. Color Palette
-  1. Square Pixels
-  2. Triangles in Horizontal Orientation
-  3. Triangles in Vertical Orientation
-  4. Circles
-  5. Staggered Circles
-  6. Rectangles in Horizontal Orientation
-  7. Rectangles in Vertical Orientation
-  8. Stretched Hexagons
-  9. Custom Arranged
-##### B. Pixel Size
-  Controls the size of the pixels.
-##### C. Pixel Color Number
-  The number of colors the program attempts to cluster the available colors of the picture into. The larger the number, the wider range of colors will be used, while 2 will be a binary image of two colors.
-
-## Currently working on automatic posting.
-
-## Contribution
-
-Contrubution documentation can be found [HERE](https://github.com/hirokazutei/PicPixBot/blob/master/CONTRIBUTION.md).
-
-## Why it was made?
-
-I got an internship job, where I was able to work on whatever I wanted. I wanted to develop a camera app that not only would take pictures of pixelized (in various styles in terms of shapes, sizes, colors, etc.) version of the world, but also be fast enough to show a live preview on the phone screen. However, my title was quickly changed from an intern to a part-time software engineering job, which left the project abandoned.
-
-I figured it would be just as fun to have a TwitterBot online that would pixelize images, so I took on this project for fun. I have always wanted to make a TwitterBot and have it hosted on a server.
-
-If you find any bugs, or have any suggestion for the program, shoot me a message.
-
-## Special Thanks
-Daniel Shiffman at http://shiffman.net/
+## How do I set up?
