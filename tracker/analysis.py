@@ -1,21 +1,12 @@
 import numpy as np
 import pandas as pd
-import pywt
-import csv
-from scipy import signal
-from matplotlib import pyplot as plt
-from matplotlib import pylab
-from pylab import *
-import PIL, PIL.Image, io
-from scipy.fftpack import fft, ifft
-from sklearn.neighbors import KernelDensity
-from scipy.stats import gaussian_kde
-from matplotlib import cm
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-from matplotlib.figure import Figure
-from .models import Building, Event, Report
+# import PIL
+# import matplotlib.pyplot
+from scipy.fftpack import fft
+from .models import Event  # Building, Report
 
 
+# Smoothing Function
 def savitzky_golay(y, window_size, order, deriv=0, rate=1):
     import numpy as np
     from math import factorial
@@ -41,11 +32,13 @@ def savitzky_golay(y, window_size, order, deriv=0, rate=1):
     return np.convolve(m[::-1], y, mode='valid')
 
 
+# Completely Analyzes The Event
 def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
     # Read Data
     print("READ DATA")
     try:
-        if len(top_acc) < 1000 or len(bot_acc) < 1000 or bot_acc is None:
+        # If the input data is None or insufficient length, attempt to see if there are data files saved
+        if bot_acc is None or top_acc is None or len(top_acc) < 1000 or len(bot_acc) < 1000:
             if event.acceleration_top_file is not None and event.acceleration_bot_file is not None:
                 try:
                     top_parse = pd.read_table(event.acceleration_top_file)
@@ -65,15 +58,33 @@ def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
     except Exception as error:
         print("DATA ERROR")
         return error, "Error"
-    
-    # Find Max
+    # Find Max, therefore the Maximum acceleration
     try:
-        event.intensity = round(max(top_bot), 3)
+        event.intensity = round(max(bot_acc), 3)
     except Exception as error:
         return error, "Error"
     else:
         event.save()
+        """
+    try:
+        name = "event/acceleration/top/" + str(event.id) + ".png"
+        title = "Vibration of " + str(event.id) + " Top"
+        x = "Steps"
+        y = "Acceleration Top"
+        makeGraph(event.acceleration_top, len(event.acceleration_top), 0.1, name, title, x, y)
+        event.acceleration_top_graph = name
 
+        name = "event/acceleration/bot/" + str(event.id) + ".png"
+        title = "Vibration of " + str(event.id) + " Bot"
+        makeGraph(event.acceleration_bot, len(event.acceleration_bot), 0.1, name, title, x, y)
+        event.acceleration_bot_gtaph = name
+        event.save()
+    except Exception as error:
+        print("Vibration Plot ERROR")
+        event.error = True
+        print(str(error))
+        return error, "Error"
+        """
     # Fourier Transform
     print("FFT")
     try:
@@ -82,8 +93,26 @@ def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
     except Exception as error:
         print("FFT ERROR")
         event.error = True
-        even.save()
+        event.save()
         return error, "Error"
+    """
+    try:
+        name = "event/fft/top/" + str(event.id) + ".png"
+        title = "Fourier of " + str(event.id) + " Top"
+        x = "Frequency"
+        y = "Amplitude"
+        makeGraph(np.abs(top_fft), len(top_fft), 0.5, name, title, x, y)
+        event.fourier_top_graph = name
+        name = "event/fft/bot/" + str(event.id) + ".png"
+        title = "Fourier of " + str(event.id) + " Bot"
+        event.fourier_bot_graph = makeGraph(np.abs(bot_fft), len(bot_fft), 0.5, name, title, x, y)
+        event.save()
+    except Exception as error:
+        print("Fourier Plot ERROR")
+        event.error = True
+        return error, "Error"
+        """
+    # Smoothen the fourier transform with Savitzky Golay
     print("SMOOTH")
     try:
         temp_fourier_top = savitzky_golay(np.array(np.abs(top_fft)), smooth_str, smooth_deg)
@@ -99,7 +128,25 @@ def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
         event.fourier_bot = temp_fourier_bot.tolist()
         event.number = temp_number
         event.save()
-
+        """
+    try:
+        name = "event/fftsmooth/top/" + str(event.id) + ".png"
+        title = "Fourier of " + str(event.id) + " Top (Smooth)"
+        x = "Frequency"
+        y = "Amplitude"
+        event.fourier_top_graph_smooth = makeGraph(event.fourier_top, len(event.fourier_top),
+                                                   0.5, name, title, x, y)
+        name = "event/fftsmooth/bot/" + str(event.id) + ".png"
+        title = "Fourier of " + str(event.id) + " Bot (Smooth)"
+        event.fourier_bot_graph_smooth = makeGraph(event.fourier_bot, len(event.fourier_bot),
+                                                   0.5, name, title, x, y)
+        event.save()
+    except Exception as error:
+        print("Fourier Plot ERROR Smooth")
+        event.error = True
+        return error, "Error"
+        """
+    # Divide the smoothened fourier data to remove noise
     print("TRANSFER FUNCTION")
     try:
         transfer_function = []
@@ -112,35 +159,45 @@ def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
     else:
         event.transfer_function = transfer_function
         event.save()
-    
-    # Process Graph
-    print("GRAPH")
+        """
     try:
-        ### ADD GRAPH FUNCTION
-        print("Missing Graph Function")
+        name = "event/transfer/" + str(event.id) + ".png"
+        title = "Transferred Fourier of " + str(event.id)
+        x = "Frequency"
+        y = "Amplitude"
+        event.transfer_function_graph = makeGraph(np.abs(event.transfer_function), len(event.transfer_function),
+                                                  0.5, name, title, x, y)
+        event.save()
     except Exception as error:
-        print("ERROR")
-        return "Could not process graph", "Error"
-
-    # Process Predominant Period
-    ### REVIEW THIS CODE
+        print("Fourier Plot ERROR Smooth")
+        event.error = True
+        return error, "Error"
+        """
+    # Determine the predominant frequency
     print("PREDOMINANT FREQUENCY")
     try:
+        # The list length the data comes in a factor 16383, thus the program has to acommodate
         n = int((2*event.number)/32766)
-        print(n)
-        print(event.number)
         transfer_peak = max(event.transfer_function[50*n:1000*n])
-        for n in range(len(event.fourier_top)):
-            if (event.transfer_function[n] == transfer_peak):
-                predominant_period = round(1/(n/event.number)/100, 3)
+        is_err = True
+        for i in range(10, len(event.transfer_function)):
+            if (event.transfer_function[i] == transfer_peak):
+                predominant_period = round(1.0/((float(i)/float(n))/160.0), 3)
+                is_err = False
+                if predominant_period < 0.05 or predominant_period > 6:
+                    event.error = True
+                    is_err = True
+                event.predominant_period = predominant_period
+                print(predominant_period)
                 break
     except Exception as error:
         event.error = True
-        even.save()
-        print("ERROR")
+        event.save()
+        is_err = True
+        print("Predominant Frequency ERROR")
         return error, "Error"
-    event.predominant_period = predominant_period
-    event.error = False
+    if not is_err:
+        event.error = False
     event.processed = True
     event.save()
     return "", "Complete"
@@ -235,3 +292,15 @@ def WarningSigns(building):
 
 # Upload Event, Process Event, Append Period, Smoothen, Average_period, warning signs
 # Function to compare event predominant frequency and ask if error
+
+
+"""
+def makeGraph(data, length, lineWidth, dirName, titles='Graph', xlabels='x', ylabels='y'):
+    x = arange(0, length)
+    plot(x, data, linewidth=lineWidth)
+    xlabel(xlabels)
+    ylabel(ylabels)
+    title(titles)
+    savefig("media/" + dirName)
+    return dirName
+"""

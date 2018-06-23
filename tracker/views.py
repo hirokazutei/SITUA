@@ -2,25 +2,24 @@
 from __future__ import unicode_literals
 from django import forms
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
+# from django.forms.widgets import SelectDateWidget
 from django.urls import reverse, reverse_lazy
-from django.template import loader
+# from django.template import loader
 import json
 from django.views import generic
 import dateparser
-from cgi import parse_qs, escape
+# from cgi import parse_qs, escape
 from django.views.decorators.csrf import csrf_exempt
-import requests
+# import requests
 from django.views.generic import View
-from django.views.generic.edit import CreateView, UpdateView, DeleteView # Create form
+from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.shortcuts import render, get_object_or_404, get_list_or_404, redirect
-
 from .analysis import AnalyzeEvent, SmoothenPredominantPeriod, AppendPeriod, AveragePeriod, WarningSigns
-
 from .models import Building, Event, Report
+# from django.contrib.auth import authenticate, login
 
-from django.contrib.auth import authenticate, login
 
-
+# Generic view to display list of buildings
 class IndexView(generic.ListView):
     template_name = 'tracker/index.html'
     context_object = 'building_list'
@@ -29,6 +28,7 @@ class IndexView(generic.ListView):
         return Building.objects.all()
 
 
+# Generic view to display list of events
 class EventList(generic.ListView):
     template_name = 'tracker/event-list.html'
     context_object = 'event_list'
@@ -37,12 +37,13 @@ class EventList(generic.ListView):
         return Event.objects.all()
 
 
-#Changed from DetailView
+# Generic Detail view of the building
 class BuildView(generic.DetailView):
     model = Building
     template_name = 'tracker/build_view.html'
 
 
+# The form for filling in building information
 class BuildingForm(forms.ModelForm):
     class Meta:
         model = Building
@@ -57,18 +58,21 @@ class BuildingForm(forms.ModelForm):
         }
 
 
+# The view to create a building object
 class BuildingCreate(CreateView):
     form_class = BuildingForm
     model = Building
     success_url = reverse_lazy("tracker:index")
 
 
+# The view to update building object
 class BuildingUpdate(UpdateView):
     form_class = BuildingForm
     model = Building
     success_url = reverse_lazy("tracker:index")
 
 
+# The detailed view of the events
 class EventView(generic.DetailView):
     model = Event
     # By default, it will choose template called
@@ -77,6 +81,7 @@ class EventView(generic.DetailView):
     template_name = 'tracker/event_view.html'
 
 
+# The form for filling in Event Information
 class EventForm(forms.ModelForm):
     class Meta:
         model = Event
@@ -89,33 +94,38 @@ class EventForm(forms.ModelForm):
             'acceleration_bot': forms.Textarea
         }
 
-
+# The view to create event objects
 class EventCreate(CreateView):
     form_class = EventForm
     model = Event
     success_url = reverse_lazy("tracker:index")
 
 
+# The view to update event objects
 class EventUpdate(UpdateView):
     form_class = EventForm
     model = Event
     success_url = reverse_lazy("tracker:index")
 
 
-class ReportList(generic.DetailView):
+# The list view of report objects
+class ReportList(generic.ListView):
     model = Building
     template_name = 'tracker/report-list.html'
 
 
+# The detailed view of report objects
 class ReportView(generic.DetailView):
     model = Report
     template_name = 'tracker/report-view.html'
 
 
+# The form to fill in report information
 class ReportForm(forms.ModelForm):
     class Meta:
         model = Report
-        fields = ['building', 'begin_modification', 'end_modification', 'occurance', 'comment', 'image1', 'image2', 'image3', 'image4']
+        fields = ['building', 'begin_modification', 'end_modification', 'occurance',
+                  'comment', 'image1', 'image2', 'image3', 'image4']
         widgets = {
             'end_modification': forms.SelectDateWidget(),
             'begin_modification': forms.SelectDateWidget(),
@@ -123,18 +133,21 @@ class ReportForm(forms.ModelForm):
         }
 
 
+# The form to create a report objects
 class ReportCreate(CreateView):
     form_class = ReportForm
     model = Report
     success_url = reverse_lazy("tracker:index")
 
 
+# The form to update a report objects
 class ReportUpdate(UpdateView):
     form_class = ReportForm
     model = Report
     success_url = reverse_lazy("tracker:index")
 
 
+# The link to process events, using the AnalyzeEvent function
 def process_event(request, buildingpk, eventpk):
     building = get_object_or_404(Building, pk=buildingpk)
     try:
@@ -145,7 +158,7 @@ def process_event(request, buildingpk, eventpk):
             'error_message': error,
         })
     else:
-        message, status = AnalyzeEvent(analyze_event, analyze_event.acceleration_top, 
+        message, status = AnalyzeEvent(analyze_event, analyze_event.acceleration_top,
                                        analyze_event.acceleration_bot)
         if status != "Error":
             message = "Event {} has been processed!".format(eventpk)
@@ -157,12 +170,14 @@ def process_event(request, buildingpk, eventpk):
         #                                    args=(building.pk,)))
 
 
+# The link to process buildings
 def process_building(request, buildingpk):
     building = get_object_or_404(Building, pk=buildingpk)
     print(SmoothenPredominantPeriod(building))
     return HttpResponseRedirect(reverse('tracker:index'))
 
 
+# The link associated with changing the Event
 def change_error(request, buildingpk, eventpk):
     building = get_object_or_404(Building, pk=buildingpk)
     try:
@@ -217,6 +232,7 @@ def buidling_modified(request, buildingpk):
     return HttpResponseRedirect(reverse('tracker:report-add'))
 
 
+# The function to handle API uploads
 @csrf_exempt
 def APIupload(request):
     if request.method == "POST":
@@ -238,7 +254,7 @@ def APIupload(request):
                 if status == "Error":
                     return HttpResponse(msg)
             except Exception:
-                return HttpResponse('Analyze Event Failed') 
+                return HttpResponse('Analyze Event Failed')
             try:
                 msg, status = AppendPeriod(building)
                 if status == "Error":
@@ -283,67 +299,3 @@ def APIupload(request):
             return HttpResponseBadRequest
     print(building.predominant_period_avg)
     return HttpResponse('<h1>Event Added and Processed</h1>')
-
-
-""" This is the non generic view method to return rendered views
-
-def index(request):
-        building_list = get_list_or_404(Building)
-        return render(request, 'tracker/index.html',\
-         {'building_list': building_list})
-
-
-def build_view(request, building_pk):
-        building = get_object_or_404(Building, pk=building_pk)
-        try:
-                event = get_list_or_404(Event, building=building_pk)
-        except Exception as error:
-                return render(request, 'tracker/build_view.html', {
-                        'building': building,
-                        'error': error})
-        return render(request, 'tracker/build_view.html', {
-                'building': building,
-                'event': event,
-                })
-
-
-def build_edit(request, building_pk):
-        building = get_object_or_404(Building, pk=building_pk)
-        return render(request, 'tracker/build_edit.html'\
-         {'building': building})
-        """
-
-"""
-#Making Users
-class UserFormView(View):
-    form_class = UserForm
-    template_name = 'upload/registration_form.html'
-
-    def get(self, request):
-        form = self.form_class(None) #Use the user form
-        return render(request, self.template_name, {'form': form})
-
-    def post(self, request):
-        form = self.form_class(request.POST)
-
-        if form.is_valid():
-            user = form.save(commit=False) #does not save in database
-
-            # cleaned (normalized) data
-            username = form.cleaned_data['username']
-            password = form.cleaned_data['password']
-            user.set_password(password)
-            #email = form.cleaned_data['email']
-            #association = form.cleaned_data['association']
-            #first_name = form.cleaned_data['first_name']
-            #last_name = form.cleaned_data['last_name']
-            user.save()
-
-            #returns user objects if credentials are correct
-            user = authenticate(username=username, password=password)
-            if user is not None:
-                if user.is_active:
-                    login(request, user)
-                    return redirect('upload:index')
-        return render(request, self.template_name, {'form': form})
-"""
