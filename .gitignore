@@ -115,4 +115,7 @@ tracker/static/
 media/
 SITUA/media/
 .vscode/
+
+*.DS_Store
 .DS_Store
+*/.DS_Store
