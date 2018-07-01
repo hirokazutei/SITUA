@@ -103,9 +103,16 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+venv/*
+tracker/migrations/*
+tracker/static/*
+media/*
+SITUA/media/*
+.vscode/*
 venv/
-tracker/migrations
-tracker/static
+tracker/migrations/
+tracker/static/
 media/
 SITUA/media/
-.vscode
+.vscode/
+.DS_Store
