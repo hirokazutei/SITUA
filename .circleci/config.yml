@@ -26,11 +26,6 @@ jobs:
           name: Setup virtualenv for every run
           command: echo "source ~/SITUA/venv/bin/activate" >> $BASH_ENV
         
-      - run:
-          name: running tests
-          command: |
-            . venv/bin/activate
-            python manage.py test
       - store_artifacts: # special step to store test reports as artifacts
           path: test-reports/
           destination: tr1
