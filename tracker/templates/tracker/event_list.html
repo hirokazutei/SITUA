@@ -1,0 +1,15 @@
+{% extends 'tracker/base.html' %}
+
+{% block body %}
+<div class="container">
+    <ul>
+        {% if event_list %} <!-- when you use ListView, it always return the list os object_list-->
+            {% for event in event_list %}
+                <li><a href="{% url 'tracker:event-view' event.id %}"> Building Name Here: {{ event.Building }} </a></li>
+            {% endfor %}
+        {% else %}
+            <h1> NO BUILDINGS YET</h1>
+        {% endif %}
+    </ul>
+    </div>
+{% endblock %}
