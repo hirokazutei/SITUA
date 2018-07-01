@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import os
 from __future__ import unicode_literals
+import os
 from django import forms
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
 # from django.forms.widgets import SelectDateWidget
@@ -325,13 +325,13 @@ def find_address(request, buildingpk):
         result = gm.geocode('{}, {}, {}, {}, {}, {}'.format(building.postal,
                                                             building.country,
                                                             building.state,
-                                                            building,city,
+                                                            building.city,
                                                             building.address1,
                                                             building.address2))
         building.latitude = result[0]['geometry']['location']['lat']
-        building.longitude = result[0]['geometry']['location']['lng'])
+        building.longitude = result[0]['geometry']['location']['lng']
         building.save()
     except Exception as err:
-        building.cannot_find_address == True
+        building.cannot_find_address = True
         print(err)
     return HttpResponseRedirect(reverse('tracker:build_view', args=(buildingpk)))
