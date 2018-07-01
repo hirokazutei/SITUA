@@ -247,6 +247,9 @@ def AveragePeriod(building):
     try:
         if len(building.predominant_periods) < 10:
             err = "There is not enough predominant period to significantly smoothen."
+            building.status = 'Not Enough Info'
+            building.warning_message = "Not Enough Info"
+            building.save()
             return err, "Error"
         else:
             try:
@@ -262,22 +265,28 @@ def AveragePeriod(building):
 
 def WarningSigns(building):
     try:
-        if building.predominant_period_avg <= 0:
+        if len(building.predominant_periods) < 10:
+            err = "There is not enough predominant period to significantly smoothen."
+            building.building_status = 'Not Enough Info'
+            building.warning_message = "Not Enough Info"
+            building.save()
+            return err, "Error"
+        elif building.predominant_period_avg <= 0:
             err = "There is not enough data to determine building status."
             return err, "Error"
         else:
             try:
                 percent_change = building.predominant_period_avg/building.predominant_periods_smooth[-1]
-                if percent_change > 1.3:
+                if percent_change > 0.8:
                     building.warning_message = "Significant Lowering of Predominant Period!"
                     building.building_status = "Caution"
-                elif percent_change > 1.6:
+                elif percent_change > 0.6:
                     building.building_status = "Dangerous"
                     building.warning_message = "Extremely Significant Lowering of Predominant Period!"
-                elif percent_change < 0.8:
+                elif percent_change < 1.3:
                     building.building_status = "Abnormal"
                     building.warning_message = "Sifnificant Increase of Predominant Period!"
-                elif percent_change < 0.6:
+                elif percent_change < 1.6:
                     building.building_status = "Abnormal"
                     building.warning_message = "Extremely Significant Incrase of Predominant Period!"
                 else:

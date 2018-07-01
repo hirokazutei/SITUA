@@ -19,6 +19,7 @@ urlpatterns = [
     url(r'^view/(?P<pk>[0-9]+)/$', views.BuildView.as_view(), name='build_view'),
     # Since this leads to a function, there is no generic view
     
+    url(r'^buildings', views.BuildList.as_view(), name='build_list'),
     url(r'building/add/$', views.BuildingCreate.as_view(), name='building-add'),
     url(r'^process_building/(?P<buildingpk>[0-9]+)/$', views.process_building, name='process_building'),
     url(r'building/updata/(?P<pk>[0-9]+)/$', views.BuildingUpdate.as_view(), name='building-update'),

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 from __future__ import unicode_literals
 from django import forms
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
@@ -16,12 +17,21 @@ from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.shortcuts import render, get_object_or_404, get_list_or_404, redirect
 from .analysis import AnalyzeEvent, SmoothenPredominantPeriod, AppendPeriod, AveragePeriod, WarningSigns
 from .models import Building, Event, Report
-# from django.contrib.auth import authenticate, login
+# google map API
+import googlemaps
 
 
 # Generic view to display list of buildings
 class IndexView(generic.ListView):
     template_name = 'tracker/index.html'
+    context_object = 'building_list'
+
+    def get_queryset(self):
+        return Building.objects.all()
+
+
+class BuildList(generic.ListView):
+    template_name = 'tracker/build_list.html'
     context_object = 'building_list'
 
     def get_queryset(self):
@@ -48,7 +58,8 @@ class BuildingForm(forms.ModelForm):
     class Meta:
         model = Building
         fields = ['name', 'affiliation', 'image', 'floors_above', 'floors_below',
-                  'construction_date', 'general_info', 'address', 'structure_type',
+                  'construction_date', 'general_info', 'country', 'city',
+                  'postal', 'address1', 'address2', 'structure_type',
                   'height', 'width_ns', 'width_ew', 'contex_info', 'acc_top_floor',
                   'acc_bot_floor', 'acc_top_detail', 'acc_bot_detail']
         widgets = {
@@ -173,7 +184,10 @@ def process_event(request, buildingpk, eventpk):
 # The link to process buildings
 def process_building(request, buildingpk):
     building = get_object_or_404(Building, pk=buildingpk)
+    print(AppendPeriod(building))
     print(SmoothenPredominantPeriod(building))
+    print(AveragePeriod(building))
+    print(WarningSigns(building))
     return HttpResponseRedirect(reverse('tracker:index'))
 
 
@@ -299,3 +313,25 @@ def APIupload(request):
             return HttpResponseBadRequest
     print(building.predominant_period_avg)
     return HttpResponse('<h1>Event Added and Processed</h1>')
+
+
+def find_address(request, buildingpk):
+    building = get_object_or_404(Building, pk=buildingpk)
+    google_key = os.getenv('GOOGLE_MAPS_API_KEY')
+    if google_key:
+        print("Set the 'GOOGLE_MAP_API_KEY' on your environment varaible")
+    try:
+        gm = googlemaps.Client(key=google_key)
+        result = gm.geocode('{}, {}, {}, {}, {}, {}'.format(building.postal,
+                                                            building.country,
+                                                            building.state,
+                                                            building,city,
+                                                            building.address1,
+                                                            building.address2))
+        building.latitude = result[0]['geometry']['location']['lat']
+        building.longitude = result[0]['geometry']['location']['lng'])
+        building.save()
+    except Exception as err:
+        building.cannot_find_address == True
+        print(err)
+    return HttpResponseRedirect(reverse('tracker:build_view', args=(buildingpk)))

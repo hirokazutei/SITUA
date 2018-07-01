@@ -1,0 +1,49 @@
+{% extends 'tracker/base.html' %}
+
+{% block title %} Buildings {% endblock %}
+
+{% block body %}
+<div class="container">
+
+<h1>List of Monitored Buildings</h1>
+
+{% csrf_token %}
+    <!--<div class="table-responsive">-->
+    <table class="table table-hover">
+        <tr>
+            <th>Image</th>
+            <th>Building No.</th>
+            <th>Name</th>
+            <th>Affiliation</th>
+            <th>Location</th>
+            <th>Status</th>
+            <th>Events</th>
+            <th>Report</th>
+            <th>Update Data</th>
+        </tr>
+    {% for building in building_list %}
+        <label for="building{{ forloop.counter }}">
+            <tr class="Building">
+                {% if building.image %}
+                    {% load staticfiles %}
+                    <td><img src={% static building.image.url %} alt="Building's Image" class="img-responsive img-rounded" style="width:300px;height:200px;"\></td>
+                {% else %}
+                    <td><span class="glyphicon glyphicon-ok" aria-hidden="true"></span></td>
+                {% endif %}
+                <td>{{ building.pk }}</td>
+                <td><a href="{% url 'tracker:build_view' building.id %}">{{ building.name }} </a>  </td>
+                <td>{{ building.affiliation }}</td>
+                <td>{{ building.location }}</td>
+                <td>{{ building.building_status }} </td>
+                <td><a href="{% url 'tracker:build_view' building.id %}"><button type="button"
+                    class="btn btn-default">Events</button></a></td>
+                <td><a href="{% url 'tracker:report-list' building.id %}"><button type="button"
+                    class="btn btn-default">Reports</button></a></td>
+                <td><a href="{% url 'tracker:process_building' building.id %}"><button type="button"
+                    class="btn btn-default">Update Data</button></a></td>
+            </tr>
+        </label><br>
+    {% endfor %}
+</table>
+</div>
+{% endblock %}

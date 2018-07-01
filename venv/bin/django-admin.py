@@ -1,4 +1,4 @@
-#!/Users/hirokazu/Desktop/SITUA/venv/bin/python3
+#!/Users/hirokazu/GIT/SITUA/venv/bin/python3
 from django.core import management
 
 if __name__ == "__main__":

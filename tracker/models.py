@@ -51,12 +51,6 @@ class Building(models.Model):
     floors_below = models.IntegerField(default=0)
     construction_date = models.DateTimeField(auto_now_add=False, blank=True)
     added_date = models.DateTimeField(auto_now_add=True)
-    general_info = models.CharField(max_length=512, default='None')
-    # Contexual Information
-    address = models.CharField(max_length=256, default='None')
-    latitude = models.FloatField(default=0, blank=True)
-    longitude = models.FloatField(default=0, blank=True)
-    cannot_find_address = models.BooleanField(default=False)
     structure_type = models.CharField(
         max_length=50,
         choices=BUILDING_TYPE,
@@ -65,6 +59,17 @@ class Building(models.Model):
     height = models.FloatField(default=0, blank=True)
     width_ns = models.FloatField(default=0, blank=True)
     width_ew = models.FloatField(default=0, blank=True)
+    general_info = models.CharField(max_length=512, default='None')
+    # Contexual Information
+    country = models.CharField(max_length=32, default='None')
+    state = models.CharField(max_length=32, default='None')
+    city = models.CharField(max_length=32, default='None')
+    postal = models.CharField(max_length=16, default='None')
+    address1 = models.CharField(max_length=256, default='None')
+    address2 = models.CharField(max_length=256, default='None')
+    latitude = models.FloatField(default=0, blank=True)
+    longitude = models.FloatField(default=0, blank=True)
+    cannot_find_address = models.BooleanField(default=False)
     contex_info = models.CharField(max_length=512, default='None', blank=True)
     # Accelerometer Information
     # Perhaps make this a separate class and link the id with Building
@@ -109,7 +114,7 @@ class Event(models.Model):
     event_time = models.DateTimeField(auto_now_add=False)
     duration = models.IntegerField(default=0, blank=True)
     intensity = models.FloatField(default=-1, blank=True)
-    number = models.IntegerField(default=0, blank=True)
+    number = models.IntegerField(default=0, blank=True) #delete this
 
     # Analitical Information
     acceleration_top = ArrayField(models.FloatField(), default=[], blank=True)
