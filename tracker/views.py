@@ -19,6 +19,18 @@ from .analysis import AnalyzeEvent, SmoothenPredominantPeriod, AppendPeriod, Ave
 from .models import Building, Event, Report
 # google map API
 import googlemaps
+# datetime
+from datetime import datetime, timedelta
+
+
+EVENT_GEO_ERROR_MINUTES = os.getenv('EVENT_GEO_ERROR_MINUTES', 10)
+LAT_LON_DISTANCE = os.getenv('LAT_LON_DISTANCE', 1)
+PERCENT_CHANGE_LOW = os.getenv('PERCENT_CHANGE_LOW', 0.8)
+PERCENT_CHANGE_VERY_LOW = os.getenv('PERCENT_CHANGE_VERY_LOW', 0.6)
+PERCENT_CHANGE_TOO_LOW = os.getenv('PERCENT_CHANGE_TOO_LOW', 0.333)
+PERCENT_CHANGE_HIGH = os.getenv('PERCENT_CHANGE_HIGH', 1.3)
+PERCENT_CHANGE_VERY_HIGH = os.getenv('PERCENT_CHANGE_VERY_HIGH', 1.6)
+PERCENT_CHANGE_TOO_HIGH = os.getenv('PERCENT_CHANGE_TOO_HIGH', 3)
 
 
 # Generic view to display list of buildings
@@ -30,6 +42,7 @@ class IndexView(generic.ListView):
         return Building.objects.all()
 
 
+# Generic view to display list of buildings
 class BuildList(generic.ListView):
     template_name = 'tracker/build_list.html'
     context_object = 'building_list'
@@ -105,6 +118,7 @@ class EventForm(forms.ModelForm):
             'acceleration_bot': forms.Textarea
         }
 
+
 # The view to create event objects
 class EventCreate(CreateView):
     form_class = EventForm
@@ -169,6 +183,7 @@ def process_event(request, buildingpk, eventpk):
             'error_message': error,
         })
     else:
+        # Analyzes the event
         message, status = AnalyzeEvent(analyze_event, analyze_event.acceleration_top,
                                        analyze_event.acceleration_bot)
         if status != "Error":
@@ -177,17 +192,40 @@ def process_event(request, buildingpk, eventpk):
             'building': building,
             'message': message,
         })
-        # return HttpResponseRedirect(reverse('tracker:build_view',
-        #                                    args=(building.pk,)))
 
 
 # The link to process buildings
 def process_building(request, buildingpk):
     building = get_object_or_404(Building, pk=buildingpk)
-    print(AppendPeriod(building))
-    print(SmoothenPredominantPeriod(building))
-    print(AveragePeriod(building))
-    print(WarningSigns(building))
+    try:
+        # Append the processed data to the building
+        msg, status = AppendPeriod(building)
+        if status == "Error":
+            print(msg)
+    except Exception:
+        print("AppendPeriod Failed")
+    try:
+        # Smoothens the predominant period using a box filter
+        msg, status = SmoothenPredominantPeriod(building)
+        if status == "Error":
+            print(msg)
+    except Exception:
+        print("Smoothen Predominant Period Failed")
+    try:
+        # Averages out the predominant period
+        msg, status = AveragePeriod(building)
+        if status == "Error":
+            print(msg)
+    except Exception:
+        print("Average Period Failed")
+    # Compares the predominant period averages to determine danger
+    try:
+        # Averages out the predominant period
+        msg, status = WarningSigns(building)
+        if status == "Error":
+            print(msg)
+    except Exception:
+        print("Warning Signs Failed")
     return HttpResponseRedirect(reverse('tracker:index'))
 
 
@@ -220,13 +258,18 @@ def change_error(request, buildingpk, eventpk):
                                             args=(building.pk,)))
 
 
+# Changes the error status of an error
 def confirmed_not_error(request, buildingpk, eventpk):
-    event = get_object_or_404(Event, pk=eventpk)
-    event.confirmed_not_error = True
-    event.save()
+    try:
+        event = get_object_or_404(Event, pk=eventpk)
+        event.confirmed_not_error = True
+        event.save()
+    except Exception as err:
+        print(err)
     return HttpResponseRedirect(reverse('tracker:build_view', args=(buildingpk)))
 
 
+# Indicate that the building has been modified and new predominant period data is being collected
 def buidling_modified(request, buildingpk):
     building = get_object_or_404(Building, pk=buildingpk)
     try:
@@ -249,7 +292,9 @@ def buidling_modified(request, buildingpk):
 # The function to handle API uploads
 @csrf_exempt
 def APIupload(request):
+    # Receives a Post Request
     if request.method == "POST":
+        # Parse the data
         e = json.loads(request.body)
         acc_top = e['acceleration_top']
         acc_bot = e['acceleration_bot']
@@ -258,18 +303,21 @@ def APIupload(request):
             if '\n' in acc_top:
                 acc_top = acc_top.split('\n')
                 acc_bot = acc_bot.split('\n')
-            e = Event(building=building,
-                      event_time=dateparser.parse(e['event_time']),
-                      acceleration_top=e['acceleration_top'],
-                      acceleration_bot=e['acceleration_bot'])
-            e.save()
+            # Save the data to event.
+            event = Event(building=building,
+                          event_time=dateparser.parse(e['event_time']),
+                          acceleration_top=e['acceleration_top'],
+                          acceleration_bot=e['acceleration_bot'])
+            event.save()
             try:
+                # Analyze the event data
                 msg, status = AnalyzeEvent(e, e.acceleration_top, e.acceleration_bot)
                 if status == "Error":
                     return HttpResponse(msg)
             except Exception:
                 return HttpResponse('Analyze Event Failed')
             try:
+                # Append the processed data to the building
                 msg, status = AppendPeriod(building)
                 if status == "Error":
                     return HttpResponse(msg)
@@ -288,6 +336,7 @@ def APIupload(request):
                     return HttpResponse(msg)
             except Exception:
                 return HttpResponse("Average Period Failed")
+            # Compare to see if warning signs needs to be displayed
             try:
                 msg, status = WarningSigns(building)
                 if status == "Error":
@@ -295,17 +344,31 @@ def APIupload(request):
             except Exception:
                 return HttpResponse("Warning Signs Failed")
             try:
-                    print(building.predominant_period_avg)
-                    if int(building.predominant_period_avg) > 0:
-                        percent_change = int(building.predominant_period_avg / e.predominant_period)
-                        if percent_change > 1.3:
-                            e.might_be_error = True
-                        elif percent_change > 1.6:
-                            e.might_be_error = True
-                        elif percent_change < 0.8:
-                            e.might_be_error = True
-                        elif percent_change < 0.6:
-                            e.might_be_error = True
+                print(building.predominant_period_avg)
+                if int(building.predominant_period_avg) > 0:
+                    percent_change = int(building.predominant_period_avg / e.predominant_period)
+                # Bit of a Simple Error Detection
+                if percent_change > PERCENT_CHANGE_TOO_HIGH:
+                    event.might_be_error = True
+                if percent_change < PERCENT_CHANGE_TOO_LOW:
+                    event.might_be_error = True
+                # DETERMINING WARNING SIGNS
+                if percent_change > PERCENT_CHANGE_LOW:
+                    building.warning_message = "Significant Lowering of Predominant Period!"
+                    building.building_status = "Caution"
+                elif percent_change > PERCENT_CHANGE_VERY_LOW:
+                    building.building_status = "Dangerous"
+                    building.warning_message = "Extremely Significant Lowering of Predominant Period!"
+                elif percent_change < PERCENT_CHANGE_HIGH:
+                    building.building_status = "Abnormal"
+                    building.warning_message = "Sifnificant Increase of Predominant Period!"
+                elif percent_change < PERCENT_CHANGE_VERY_HIGH:
+                    building.building_status = "Abnormal"
+                    building.warning_message = "Extremely Significant Incrase of Predominant Period!"
+                else:
+                    building.building_status = "Good"
+                    building.warning_message = "Everything seems fine"
+                building.save()
             except Exception as err:
                 print(err)
                 return HttpResponse('Warnings Failed')
@@ -315,6 +378,7 @@ def APIupload(request):
     return HttpResponse('<h1>Event Added and Processed</h1>')
 
 
+# USING GOOGLE'S API TO FIND LONGITUDE AND LATITUDE
 def find_address(request, buildingpk):
     building = get_object_or_404(Building, pk=buildingpk)
     google_key = os.getenv('GOOGLE_MAPS_API_KEY')
@@ -335,3 +399,26 @@ def find_address(request, buildingpk):
         building.cannot_find_address = True
         print(err)
     return HttpResponseRedirect(reverse('tracker:build_view', args=(buildingpk)))
+
+
+# FINDING OTHER EARTHQUAKES THAT HAS HAPPENED IN THE VICINITY
+def geo_error_detection(building, event):
+    try:
+        buildings = Building.objects.all()
+    except Exception as err:
+        print("Obtaining all the buildings failed")
+        print(err)
+    try:
+        for compare_building in buildings:
+            lat_dif = compare_building.latitude - building.latitude
+            lon_dif = compare_building.longitude - building.longitude
+            if abs(lat_dif)**2 + abs(lon_dif)**2 < LAT_LON_DISTANCE:
+                time_diff = event.event_time - datetime.timedelta(minutes=EVENT_GEO_ERROR_MINUTES)
+                compare_event = Event.objects.filter(building=compare_building, event_time__gte=time_diff)
+                compare_event.geo_not_error = True
+                event.geo_not_error = True
+                event.save()
+                compare_event.save()
+    except Exception as err:
+        print("Comparing Buildings and Events Failed")
+        print(err)

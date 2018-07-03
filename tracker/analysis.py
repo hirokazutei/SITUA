@@ -1,9 +1,24 @@
+import os
 import numpy as np
 import pandas as pd
+# Import these for producing graphs
 # import PIL
 # import matplotlib.pyplot
 from scipy.fftpack import fft
 from .models import Event  # Building, Report
+
+
+# Set Environment Variables
+ANALYZE_PROCESS_STEPS = os.getenv('ANALYZE_PROCESS_STEPS', 160.0)
+ANALYZE_STANDARD_STEP_NUMBER = os.getenv('ANALYZE_STANDARD_STEP_NUMBER', 32766)
+ANALYZE_BEGIN_PEAK = os.getenv('ANALYZE_BEGIN_PEAK', 50)
+ANALYZE_END_PEAK = os.getenv('ANALYZE_END_PEAK', 1000)
+ANALYZE_PERIOD_TOO_LOW = os.getenv('ANALYZE_PERIOD_TOO_LOW', 0.05)
+ANALYZE_PERIOD_TOO_HIGH = os.getenv('ANALYZE_PERIOD_TOO_HIGH', 6)
+PERCENT_CHANGE_LOW = os.getenv('PERCENT_CHANGE_LOW', 0.8)
+PERCENT_CHANGE_VERY_LOW = os.getenv('PERCENT_CHANGE_VERY_LOW', 0.6)
+PERCENT_CHANGE_HIGH = os.getenv('PERCENT_CHANGE_HIGH', 1.3)
+PERCENT_CHANGE_VERY_HIGH = os.getenv('PERCENT_CHANGE_VERY_HIGH', 1.6)
 
 
 # Smoothing Function
@@ -41,6 +56,7 @@ def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
         if bot_acc is None or top_acc is None or len(top_acc) < 1000 or len(bot_acc) < 1000:
             if event.acceleration_top_file is not None and event.acceleration_bot_file is not None:
                 try:
+                    # Try to parse the data
                     top_parse = pd.read_table(event.acceleration_top_file)
                     bot_parse = pd.read_table(event.acceleration_bot_file)
                     top_acc = top_parse.values.squeeze()
@@ -65,7 +81,8 @@ def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
         return error, "Error"
     else:
         event.save()
-        """
+    # Uncomment this to produce graph
+    """
     try:
         name = "event/acceleration/top/" + str(event.id) + ".png"
         title = "Vibration of " + str(event.id) + " Top"
@@ -95,6 +112,7 @@ def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
         event.error = True
         event.save()
         return error, "Error"
+    # Uncomment this to produce graph
     """
     try:
         name = "event/fft/top/" + str(event.id) + ".png"
@@ -128,7 +146,8 @@ def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
         event.fourier_bot = temp_fourier_bot.tolist()
         event.number = temp_number
         event.save()
-        """
+    # Uncomment this to produce graph
+    """
     try:
         name = "event/fftsmooth/top/" + str(event.id) + ".png"
         title = "Fourier of " + str(event.id) + " Top (Smooth)"
@@ -159,7 +178,8 @@ def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
     else:
         event.transfer_function = transfer_function
         event.save()
-        """
+    # Uncomment this to produce graph
+    """
     try:
         name = "event/transfer/" + str(event.id) + ".png"
         title = "Transferred Fourier of " + str(event.id)
@@ -177,14 +197,16 @@ def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
     print("PREDOMINANT FREQUENCY")
     try:
         # The list length the data comes in a factor 16383, thus the program has to acommodate
-        n = int((2*event.number)/32766)
-        transfer_peak = max(event.transfer_function[50*n:1000*n])
+        n = int((2*event.number)/ANALYZE_STANDARD_STEP_NUMBER)
+        transfer_peak = max(event.transfer_function[ANALYZE_BEGIN_PEAK*n:ANALYZE_END_PEAK*n])
         is_err = True
         for i in range(10, len(event.transfer_function)):
             if (event.transfer_function[i] == transfer_peak):
-                predominant_period = round(1.0/((float(i)/float(n))/160.0), 3)
+                # Turns Frepquency into period
+                predominant_period = round(1.0/((float(i)/float(n))/ANALYZE_PROCESS_STEPS), 3)
                 is_err = False
-                if predominant_period < 0.05 or predominant_period > 6:
+                # If the numbers are too low or too high, deep them as errors
+                if predominant_period < ANALYZE_PERIOD_TOO_LOW or predominant_period > ANALYZE_PERIOD_TOO_HIGH:
                     event.error = True
                     is_err = True
                 event.predominant_period = predominant_period
@@ -203,7 +225,7 @@ def AnalyzeEvent(event, top_acc, bot_acc, smooth_str=101, smooth_deg=2):
     return "", "Complete"
 
 
-# Buidldings
+# Appends predominant periods of a building
 def AppendPeriod(building):
     try:
         events = Event.objects.all().filter(building=building).order_by('add_time')
@@ -219,6 +241,7 @@ def AppendPeriod(building):
         return err, "Error"
 
 
+# Smoothens the predominant periods with a box filter
 def SmoothenPredominantPeriod(building):
     try:
         print(len(building.predominant_periods))
@@ -243,6 +266,7 @@ def SmoothenPredominantPeriod(building):
     return "", "Complete"
 
 
+# Simply averages the period
 def AveragePeriod(building):
     try:
         if len(building.predominant_periods) < 10:
@@ -263,6 +287,7 @@ def AveragePeriod(building):
     return "", "Complete"
 
 
+# Calculates and displays warnings if there are any.
 def WarningSigns(building):
     try:
         if len(building.predominant_periods) < 10:
@@ -277,16 +302,16 @@ def WarningSigns(building):
         else:
             try:
                 percent_change = building.predominant_period_avg/building.predominant_periods_smooth[-1]
-                if percent_change > 0.8:
+                if percent_change > PERCENT_CHANGE_LOW:
                     building.warning_message = "Significant Lowering of Predominant Period!"
                     building.building_status = "Caution"
-                elif percent_change > 0.6:
+                elif percent_change > PERCENT_CHANGE_VERY_LOW:
                     building.building_status = "Dangerous"
                     building.warning_message = "Extremely Significant Lowering of Predominant Period!"
-                elif percent_change < 1.3:
+                elif percent_change < PERCENT_CHANGE_HIGH:
                     building.building_status = "Abnormal"
                     building.warning_message = "Sifnificant Increase of Predominant Period!"
-                elif percent_change < 1.6:
+                elif percent_change < PERCENT_CHANGE_VERY_HIGH:
                     building.building_status = "Abnormal"
                     building.warning_message = "Extremely Significant Incrase of Predominant Period!"
                 else:
@@ -303,6 +328,7 @@ def WarningSigns(building):
 # Function to compare event predominant frequency and ask if error
 
 
+# Uncomment this to make generating graphs work
 """
 def makeGraph(data, length, lineWidth, dirName, titles='Graph', xlabels='x', ylabels='y'):
     x = arange(0, length)

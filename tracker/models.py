@@ -126,6 +126,7 @@ class Event(models.Model):
     error = models.BooleanField(default=True, blank=True)
     might_be_error = models.BooleanField(default=False, blank=True)
     confirmed_not_error = models.BooleanField(default=False, blank=True)
+    geo_not_error = models.BooleanField(default=False, blank=True)
     processed = models.BooleanField(default=False, blank=True)
 
     # Images and Documnets
