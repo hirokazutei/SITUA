@@ -61,5 +61,5 @@ python manage.py createsuperuser
 ~~~
 python manage.py runserver
 ~~~
-6. The app is now available locally [HERE](http://127.0.0.1:8000/tracker/)
-7. The admin page can be accessed [HERE](http://127.0.0.1:8000/admin)
+6. The app is now available locally [HERE: http://127.0.0.1:8000/tracker/](http://127.0.0.1:8000/tracker/)
+7. The admin page can be accessed [HERE: http://127.0.0.1:8000/admin](http://127.0.0.1:8000/admin)
